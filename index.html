@@ -107,15 +107,17 @@
             // --- DATOS Y MODELO (Cerebro JS) ---
 
             // Resultados finales precisos de la ejecución de neuron.py (Compresión con Pérdida)
+            // NOTA: Se usan números simples como claves para la lógica interna de JS.
+            // La función formatDictionary se encarga de mostrar el signo '+' donde corresponde.
             const MRLS_DICT = {
                 // X: [Pendiente (P), Ordenada (O)]
                 "-8": [-1.00, -12.00], // Segmento [-8.0, -6.0]
                 "-6": [0.00, -6.00],   // Segmento [-6.0, -4.0] (Elimina -5.0)
-                "-4": [1.00, -2.00],   // Segmento [-4.0, -2.0] (Neurona -2.0 mantenida)
-                "-2": [2.00, 0.00],    // Segmento [-2.0, 2.0] (CORREGIDO: Extiende hasta X=2.0, elimina X=0.0)
-                "2": [3.00, -2.00],    // Segmento [2.0, 4.0] (Elimina 3.0)
-                "4": [4.00, -6.00],    // Segmento [4.0, 6.0]
-                "6": [NaN, NaN]        // Extremo Mayor (Límite, el segmento 4.0 aplica hasta aquí)
+                "-4": [1.00, -2.00],   // Segmento [-4.0, -2.0] 
+                "-2": [2.00, 0.00],    // Segmento [-2.0, +2.0] (Extiende y elimina X=0.0)
+                "2": [3.00, -2.00],    // Segmento [+2.0, +4.0] (Elimina 3.0)
+                "4": [4.00, -6.00],    // Segmento [+4.0, +6.0]
+                "6": [NaN, NaN]        // Límite final del rango de entrenamiento (X=+6.0)
             };
             
             // Puntos originales para la gráfica
@@ -128,20 +130,32 @@
 
             /**
              * Función para formatear el diccionario en orden numérico ascendente.
-             * Esto asegura que la estructura se vea clara como un modelo segmentado.
+             * Aplica el signo '+' a las claves positivas.
              */
             function formatDictionary(dict) {
                 // 1. Obtener claves como números y ordenarlas
+                // Usamos solo las claves que representan inicios de segmento activos (excluyendo el límite final 6:NaN)
                 const keys = Object.keys(dict).map(Number).sort((a, b) => a - b);
+                
                 let formattedText = "{\n";
                 
                 // 2. Iterar sobre las claves ordenadas para construir el texto
                 keys.forEach(key => {
+                    // Excluir el punto límite final 6:NaN para la visualización del diccionario
+                    if (key === 6 && isNaN(dict[key.toString()][0])) {
+                        return; 
+                    }
+                    
                     const [P, O] = dict[key.toString()];
+                    
+                    // Formatea la clave (X_inicio): añade '+' si es positivo
+                    const keyStr = key >= 0 ? `+${key}` : key.toString();
+
                     // Formatea los valores, reemplazando NaN con 'null' y usando 2 decimales
                     const pStr = isNaN(P) ? "null" : P.toFixed(2);
                     const oStr = isNaN(O) ? "null" : O.toFixed(2);
-                    formattedText += `  ${key}: [ ${pStr}, ${oStr} ]\n`;
+                    
+                    formattedText += `  ${keyStr}: [ ${pStr}, ${oStr} ]\n`;
                 });
                 
                 formattedText += "}";
@@ -153,15 +167,18 @@
 
 
             /**
-             * Implementación en JS de la función predict(x, dictionary) (Sección III & VII)
+             * Implementación en JS de la función predict(x, dictionary)
+             * Utiliza el punto límite X=6.0 internamente.
              */
             function predictMRLS(x) {
                 // Obtener claves ordenadas de los puntos de inicio de segmento
                 const keys = Object.keys(MRLS_DICT).map(Number).sort((a, b) => a - b);
                 
                 const minX = keys[0]; // -8.0
-                // El penúltimo elemento es la clave del último segmento válido (4.0)
+                // La clave del último segmento válido (4.0)
                 const maxXSegmentKey = keys[keys.length - 2]; 
+                // El límite máximo de entrenamiento (6.0)
+                const finalXLimit = keys[keys.length - 1];
                 
                 let targetX = null;
                 let description = "Interpolación (dentro del rango)";
@@ -182,7 +199,7 @@
 
                     // --- Generalización: Extremo Mayor (X > punto final) ---
                     // Si el segmento encontrado es el último válido (4.0), y X supera el límite final (6.0)
-                    if (targetX === maxXSegmentKey && x > keys[keys.length - 1]) {
+                    if (targetX === maxXSegmentKey && x > finalXLimit) {
                         description = `EXTRAPOLACIÓN Mayor`;
                     }
                 }
@@ -190,8 +207,8 @@
                 if (targetX !== null) {
                     const [P, O] = MRLS_DICT[targetX.toString()];
                     
+                    // Si por alguna razón el punto elegido es el límite (6.0), forzamos al segmento anterior (4.0)
                     if (isNaN(P) || isNaN(O)) {
-                        // Caso de fallo, aunque no debería ocurrir con la lógica de búsqueda
                         targetX = maxXSegmentKey; 
                         const [P_new, O_new] = MRLS_DICT[targetX.toString()];
                         const yPredicted = x * P_new + O_new;
@@ -407,9 +424,9 @@
                     .attr("opacity", 0.8);
 
                 // 10. Dibuja las Neuronas Comprimidas (puntos clave del MRLS)
-                // Omitimos el último punto (X=6.0) que solo es un límite
+                // Usamos solo las claves que representan inicios de segmento activos (excluyendo el límite final 6:NaN)
                 const compressedPoints = mrlsKeys
-                    .slice(0, -1) 
+                    .filter(key => key !== 6) 
                     .map(x => ({x: x, y: predictMRLS(x).prediction}))
                     .filter(d => d.y !== null);
 
