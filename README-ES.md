@@ -89,30 +89,39 @@ En nuestro ejemplo, resulta:
 [-8.00,-4.00]
 
 				(-1.00,-12.0)
+				
 [-6.00,-6.00]
 
 				(-0.01,-6.06)
+				
 [-5.00,-6.01]
 
 				(+0.01,-5.96)
+				
 [-4.00,-6.00]
 
 				(+1.00,-2.00)
+				
 [-2.00,-4.00]
 
 				(+2.00,+0.00)
+				
 [+0.00,+0.00]
 
 				(+2.00,+0.00)
+				
 [+2.00,+4.00]
 
 				(+3.00,-2.00)
+				
 [+3.00,+7.00]
 
 				(+3.00,-2.00)
+				
 [+4.00,+10.0]
 
 				(+4.00,-6.00)
+				
 [+6.00,+18.0]
 
 Posteriormente, se asocia lo obtenido con el dato más próximo anterior y a cada dato del Diccionario Base se le quita su valor Y, quedando en nuestro ejemplo de la siguiente manera:
@@ -159,7 +168,7 @@ La Compresión sin Perdida de Información consiste en eliminar Datos o Neuronas
 
 Básicamente consiste en eliminar el Dato o la Neurona con el valor más próximo mayor que tiene igual Pendiente al Dato o Neurona más próximo menor anterior, dado que ese Dato o Neurona redundante está implícitamente contenido por el Dato o Neurona más proximo menor anterior.
 
-En nuestro modelo de juguete, los Datos o las Neuronas Redundantes son: [+0.00](+2.00,+0.00) y [+3.00](+3.00,-2.00), quedando, por lo tanto, el Diccionario Optimizado de nuestro modelo de juquete y sin perdida alguna de información de la siguiente manera:
+En nuestro modelo de juguete, los Datos o las Neuronas Redundantes son: [+0.00] (+2.00,+0.00) y [+3.00] (+3.00,-2.00), quedando, por lo tanto, el Diccionario Optimizado de nuestro modelo de juquete y sin perdida alguna de información de la siguiente manera:
 
 [-8.00] (-1.00,-12.0)
 
@@ -189,7 +198,7 @@ Cuando un Dato o una Neurona no es relevante localmente depende de la exactitud 
 
 En nuestro modelo de juguete se ha determinado que una diferencia menor a 0.03 entre el DataFrame y el valor de salida dado por el Diccionario Optimizado y Comprimido es aceptable.
 
-Por lo tanto, en nuestro modelo de juguete, el Dato o Neurona Redundantes son: [-5.00](+0.01,-5.96), quedando, por lo tanto, el Diccionario Optimizado de nuestro modelo de juquete y con perdida de información no relevante de la siguiente manera:
+Por lo tanto, en nuestro modelo de juguete, el Dato o Neurona Redundantes son: [-5.00] (+0.01,-5.96), quedando, por lo tanto, el Diccionario Optimizado de nuestro modelo de juquete y con perdida de información no relevante de la siguiente manera:
 
 [-8.00] (-1.00,-12.0)
 
