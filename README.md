@@ -118,25 +118,25 @@ En nuestro ejemplo, resulta:
 
 Posteriormente, se asocia lo obtenido con el dato más próximo anterior y a cada dato del Diccionario Base se le quita su valor Y, quedando en nuestro ejemplo de la siguiente manera:
 
-[-8.00](-1.00,-12.0)
+[-8.00] (-1.00,-12.0)
 
-[-6.00](-0.01,-6.06)
+[-6.00] (-0.01,-6.06)
 
-[-5.00](+0.01,-5.96)
+[-5.00] (+0.01,-5.96)
 
-[-4.00](+1.00,-2.00)
+[-4.00] (+1.00,-2.00)
 
-[-2.00](+2.00,+0.00)
+[-2.00] (+2.00,+0.00)
 
-[+0.00](+2.00,+0.00)
+[+0.00] (+2.00,+0.00)
 
-[+2.00](+3.00,-2.00)
+[+2.00] (+3.00,-2.00)
 
-[+3.00](+3.00,-2.00)
+[+3.00] (+3.00,-2.00)
 
-[+4.00](+4.00,-6.00)
+[+4.00] (+4.00,-6.00)
 
-[+6.00](-----,-----)
+[+6.00] (-----,-----)
 
 Este nuevo Diccionario Optimizado como se verá luego es mucho más funcional que el Diccionario Base y ya es funcional también como lo es el Diccinario Base para poder ser utilizado.
 
@@ -162,21 +162,21 @@ Básicamente consiste en eliminar el Dato o la Neurona con el valor más próxim
 
 En nuestro modelo de juguete, los Datos o las Neuronas Redundantes son: [+0.00](+2.00,+0.00) y [+3.00](+3.00,-2.00), quedando, por lo tanto, el Diccionario Optimizado de nuestro modelo de juquete y sin perdida alguna de información de la siguiente manera:
 
-[-8.00](-1.00,-12.0)
+[-8.00] (-1.00,-12.0)
 
-[-6.00](-0.01,-6.06)
+[-6.00] (-0.01,-6.06)
 
-[-5.00](+0.01,-5.96)
+[-5.00] (+0.01,-5.96)
 
-[-4.00](+1.00,-2.00)
+[-4.00] (+1.00,-2.00)
 
-[-2.00](+2.00,+0.00)
+[-2.00] (+2.00,+0.00)
 
-[+2.00](+3.00,-2.00)
+[+2.00] (+3.00,-2.00)
 
-[+4.00](+4.00,-6.00)
+[+4.00] (+4.00,-6.00)
 
-[+6.00](-----,-----)
+[+6.00] (-----,-----)
 
 ---
 
@@ -192,19 +192,19 @@ En nuestro modelo de juguete se ha determinado que una diferencia menor a 0.03 e
 
 Por lo tanto, en nuestro modelo de juguete, el Dato o Neurona Redundantes son: [-5.00](+0.01,-5.96), quedando, por lo tanto, el Diccionario Optimizado de nuestro modelo de juquete y con perdida de información no relevante de la siguiente manera:
 
-[-8.00](-1.00,-12.0)
+[-8.00] (-1.00,-12.0)
 
-[-6.00](+0.00,-6.00)
+[-6.00] (+0.00,-6.00)
 
-[-4.00](+1.00,-2.00)
+[-4.00] (+1.00,-2.00)
 
-[-2.00](+2.00,+0.00)
+[-2.00] (+2.00,+0.00)
 
-[+2.00](+3.00,-2.00)
+[+2.00] (+3.00,-2.00)
 
-[+4.00](+4.00,-6.00)
+[+4.00] (+4.00,-6.00)
 
-[+6.00](-----,-----)
+[+6.00] (-----,-----)
 
 Ahora en el Diccionario Optimizado y Comprimido de nuestro modelo de juguete para X igual a -5 el resultado es -6, obteniendose solamente una diferencia de 0.01 con respecto al dato real del DataFrame o Diccionario Base (-6.01)
 
