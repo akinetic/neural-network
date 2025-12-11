@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo de Regresión Lineal Segmentada (MRLS)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuración para usar la fuente Inter -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+        }
+        /* Estilo para un mejor contraste en los resultados */
+        .result-box {
+            background-color: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-xl p-6 md:p-10">
+        <header class="mb-8 border-b pb-4">
+            <h1 class="text-3xl font-extrabold text-blue-700">MRLS: Modelo de Regresión Lineal Segmentada</h1>
+            <p class="text-gray-500 mt-2">Frontend de demostración para el algoritmo de compresión neuronal (`neuron.py`).</p>
+        </header>
+
+        <!-- Sección de Demostración del Modelo Comprimido -->
+        <section class="mb-10">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Predicción Instantánea (Sección VII)</h2>
+            <p class="text-gray-600 mb-4">
+                Ingresa un valor de X para obtener una predicción basada en el modelo final, comprimido y generalizado (MRLS).
+            </p>
+
+            <div class="flex flex-col md:flex-row gap-4 mb-6">
+                <input type="number" id="inputX" placeholder="Ingresa un valor de X (e.g., -10, 0, 8)"
+                       class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm transition duration-150">
+                <button onclick="getPrediction()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-md hover:shadow-lg">
+                    Calcular Predicción
+                </button>
+            </div>
+
+            <!-- Resultado de la Predicción -->
+            <div id="predictionResult" class="result-box p-4 rounded-lg hidden">
+                <p class="font-medium text-gray-700">Resultado:</p>
+                <p id="resultText" class="text-xl font-extrabold text-blue-800 mt-1"></p>
+                <p id="resultSegment" class="text-sm text-gray-500 mt-2"></p>
+            </div>
+        </section>
+
+        <!-- Sección de Data y Estructura -->
+        <section>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">2. Estructura del MRLS Comprimido</h2>
+            <p class="text-gray-600 mb-4">
+                Este es el diccionario final (`compressed_lossy_dict`) de tu modelo MRLS. Cada punto (Clave X) almacena el Peso (P) y el Sesgo (O) del segmento que comienza en X.
+            </p>
+
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p class="font-mono text-xs text-gray-600 mb-2">
+                    // Diccionario: { X_inicio_segmento: [Pendiente (Peso), Ordenada (Sesgo)] }
+                </p>
+                <pre id="displayDictionary" class="text-sm overflow-x-auto"></pre>
+            </div>
+        </section>
+
+        <!-- Script principal de JavaScript -->
+        <script>
+            // Hardcoded: Datos finales después de la Compresión con Pérdida (Sección V)
+            // Estos valores provienen de la ejecución del código neuron.py con el DataFrame de ejemplo.
+            // Keys: [-8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 3.0, 4.0, 6.0]
+            const MRLS_DICT = {
+                // X: [Pendiente (P), Ordenada (O)]
+                "-8": [1.00, 4.00], 
+                "-6": [0.00, -6.00], // Extiende el segmento, eliminando el punto -5.00 con error < 0.03
+                "-4": [1.00, -2.00],
+                "-2": [2.00, 0.00],
+                "0": [2.00, 0.00],
+                "2": [3.00, -2.00],
+                "3": [3.00, -2.00],
+                "4": [4.00, -6.00],
+                "6": [NaN, NaN]     // Extremo Mayor (límite superior)
+            };
+            
+            // Muestra el diccionario en formato JSON legible
+            document.getElementById('displayDictionary').textContent = JSON.stringify(MRLS_DICT, null, 2)
+                                                                            .replace(/"/g, '')
+                                                                            .replace(/NaN/g, 'null');
+
+
+            /**
+             * Implementación en JS de la función predict(x, dictionary) (Sección III & VII)
+             * Utiliza la búsqueda del segmento y la extrapolación en extremos.
+             * @param {number} x El valor de entrada.
+             * @returns {object} Un objeto con la predicción y el segmento usado.
+             */
+            function predictMRLS(x) {
+                const keys = Object.keys(MRLS_DICT).map(Number).sort((a, b) => a - b);
+                
+                const minX = keys[0];
+                const maxX = keys[keys.length - 2]; // El penúltimo es el último punto de segmento válido
+                
+                let targetX = null;
+                let description = "Interpolación (dentro del rango)";
+                
+                // --- Generalización: Extremo Menor (X < minX) ---
+                if (x < minX) {
+                    targetX = minX;
+                    description = `EXTRAPOLACIÓN Menor (Segmento desde X=${minX})`;
+                } else {
+                    // 1. Búsqueda del segmento activo (Xn más próximo menor o igual)
+                    for (let i = keys.length - 1; i >= 0; i--) {
+                        if (x >= keys[i] && !isNaN(MRLS_DICT[keys[i]])) {
+                            targetX = keys[i];
+                            break;
+                        }
+                    }
+
+                    // --- Generalización: Extremo Mayor (X > maxX) ---
+                    if (targetX === null || targetX > maxX) {
+                        targetX = maxX;
+                        description = `EXTRAPOLACIÓN Mayor (Segmento desde X=${maxX})`;
+                    }
+                }
+                
+                if (targetX !== null) {
+                    const [P, O] = MRLS_DICT[targetX];
+                    const yPredicted = x * P + O;
+
+                    return {
+                        prediction: yPredicted.toFixed(3),
+                        segment: `Usando segmento [${targetX.toFixed(2)}, ...] con P=${P.toFixed(3)} y O=${O.toFixed(3)}`,
+                        description: description
+                    };
+                }
+                
+                return {
+                    prediction: "Error: No se pudo encontrar segmento.",
+                    segment: "",
+                    description: "Error"
+                };
+            }
+
+            /**
+             * Función para manejar la entrada del usuario y mostrar la predicción.
+             */
+            function getPrediction() {
+                const inputElement = document.getElementById('inputX');
+                const resultBox = document.getElementById('predictionResult');
+                const resultText = document.getElementById('resultText');
+                const resultSegment = document.getElementById('resultSegment');
+
+                const x = parseFloat(inputElement.value);
+
+                if (isNaN(x)) {
+                    resultText.textContent = "Por favor, ingresa un número válido.";
+                    resultSegment.textContent = "";
+                    resultBox.classList.remove('hidden');
+                    return;
+                }
+
+                const result = predictMRLS(x);
+
+                resultText.innerHTML = `Y = ${result.prediction}`;
+                resultSegment.textContent = `${result.description}. ${result.segment}`;
+                
+                // Muestra la caja de resultados
+                resultBox.classList.remove('hidden');
+
+                // Ejemplo de prueba de generalización:
+                // X = -10.0 => Extremo Menor. Segmento: [-8.0]. P=1.0, O=4.0. Y = -10 * 1 + 4 = -6.0
+                // X = 8.0   => Extremo Mayor. Segmento: [4.0]. P=4.0, O=-6.0. Y = 8 * 4 - 6 = 26.0
+                // X = 5.0   => Interpolación. Segmento: [4.0]. P=4.0, O=-6.0. Y = 5 * 4 - 6 = 14.0
+            }
+        </script>
+    </div>
+</body>
+</html>
