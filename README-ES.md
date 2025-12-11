@@ -11,14 +11,23 @@ Consideremos que un DataFrame (Purificado) es una Base de Datos acotado no conti
 En este proyecto, nuestro Dataframe (Purificado) o modelo de juguete es el siguiente:
 
 [-6.00,-6.00]
+
 [+2.00,+4.00]
+
 [-8.00,-4.00]
+
 [+0.00,+0.00]
+
 [+4.00,+10.0]
+
 [-4.00,-6.00]
+
 [+6.00,+18.0]
+
 [-5.00,-6.01]
+
 [+3.00,+7.00]
+
 [-2.00,-4.00]
 
 Donde el primer valor (lado izquierdo) representa la entrada y el segundo valor (lado derecho) representa la salida asociada a la entrada más próxima del lado izquierdo.
@@ -32,14 +41,23 @@ La creación del Diccionario Base simplemente consiste en ordenar de menor a may
 En nuestro modelo de juguete, Diccionario Base es el siguiente:
 
 [-8.00,-4.00]
+
 [-6.00,-6.00]
+
 [-5.00,-6.01]
+
 [-4.00,-6.00]
+
 [-2.00,-4.00]
+
 [+0.00,+0.00]
+
 [+2.00,+4.00]
+
 [+3.00,+7.00]
+
 [+4.00,+10.0]
+
 [+6.00,+18.0]
 
 El Diccionario Base ya es funcional a pesar de que aún no está optimizado ni comprimido.
@@ -69,37 +87,55 @@ El criterio más simple elegido por este proyecto consite en primer lugar en obt
 En nuestro ejemplo, resulta:
 
 [-8.00,-4.00]
+
 				(-1.00,-12.0)
 [-6.00,-6.00]
+
 				(-0.01,-6.06)
 [-5.00,-6.01]
+
 				(+0.01,-5.96)
 [-4.00,-6.00]
+
 				(+1.00,-2.00)
 [-2.00,-4.00]
+
 				(+2.00,+0.00)
 [+0.00,+0.00]
+
 				(+2.00,+0.00)
 [+2.00,+4.00]
+
 				(+3.00,-2.00)
 [+3.00,+7.00]
+
 				(+3.00,-2.00)
 [+4.00,+10.0]
+
 				(+4.00,-6.00)
 [+6.00,+18.0]
 
 Posteriormente, se asocia lo obtenido con el dato más próximo anterior y a cada dato del Diccionario Base se le quita su valor Y, quedando en nuestro ejemplo de la siguiente manera:
 
-[-8.00](-1.00,-12.0)
-[-6.00](-0.01,-6.06)
-[-5.00](+0.01,-5.96)
-[-4.00](+1.00,-2.00)
-[-2.00](+2.00,+0.00)
-[+0.00](+2.00,+0.00)
-[+2.00](+3.00,-2.00)
-[+3.00](+3.00,-2.00)
-[+4.00](+4.00,-6.00)
-[+6.00](-----,-----)
+[-8.00] (-1.00,-12.0)
+
+[-6.00] (-0.01,-6.06)
+
+[-5.00] (+0.01,-5.96)
+
+[-4.00] (+1.00,-2.00)
+
+[-2.00] (+2.00,+0.00)
+
+[+0.00] (+2.00,+0.00)
+
+[+2.00] (+3.00,-2.00)
+
+[+3.00] (+3.00,-2.00)
+
+[+4.00] (+4.00,-6.00)
+
+[+6.00] (-----,-----)
 
 Este nuevo Diccionario Optimizado como se verá luego es mucho más funcional que el Diccionario Base y ya es funcional también como lo es el Diccinario Base para poder ser utilizado.
 
@@ -125,14 +161,21 @@ Básicamente consiste en eliminar el Dato o la Neurona con el valor más próxim
 
 En nuestro modelo de juguete, los Datos o las Neuronas Redundantes son: [+0.00](+2.00,+0.00) y [+3.00](+3.00,-2.00), quedando, por lo tanto, el Diccionario Optimizado de nuestro modelo de juquete y sin perdida alguna de información de la siguiente manera:
 
-[-8.00](-1.00,-12.0)
-[-6.00](-0.01,-6.06)
-[-5.00](+0.01,-5.96)
-[-4.00](+1.00,-2.00)
-[-2.00](+2.00,+0.00)
-[+2.00](+3.00,-2.00)
-[+4.00](+4.00,-6.00)
-[+6.00](-----,-----)
+[-8.00] (-1.00,-12.0)
+
+[-6.00] (-0.01,-6.06)
+
+[-5.00] (+0.01,-5.96)
+
+[-4.00] (+1.00,-2.00)
+
+[-2.00] (+2.00,+0.00)
+
+[+2.00] (+3.00,-2.00)
+
+[+4.00] (+4.00,-6.00)
+
+[+6.00] (-----,-----)
 
 ---
 
@@ -148,13 +191,19 @@ En nuestro modelo de juguete se ha determinado que una diferencia menor a 0.03 e
 
 Por lo tanto, en nuestro modelo de juguete, el Dato o Neurona Redundantes son: [-5.00](+0.01,-5.96), quedando, por lo tanto, el Diccionario Optimizado de nuestro modelo de juquete y con perdida de información no relevante de la siguiente manera:
 
-[-8.00](-1.00,-12.0)
-[-6.00](+0.00,-6.00)
-[-4.00](+1.00,-2.00)
-[-2.00](+2.00,+0.00)
-[+2.00](+3.00,-2.00)
-[+4.00](+4.00,-6.00)
-[+6.00](-----,-----)
+[-8.00] (-1.00,-12.0)
+
+[-6.00] (+0.00,-6.00)
+
+[-4.00] (+1.00,-2.00)
+
+[-2.00] (+2.00,+0.00)
+
+[+2.00] (+3.00,-2.00)
+
+[+4.00] (+4.00,-6.00)
+
+[+6.00] (-----,-----)
 
 Ahora en el Diccionario Optimizado y Comprimido de nuestro modelo de juguete para X igual a -5 el resultado es -6, obteniendose solamente una diferencia de 0.01 con respecto al dato real del DataFrame o Diccionario Base (-6.01)
 
