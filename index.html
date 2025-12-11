@@ -31,7 +31,7 @@
             stroke-linecap: round;
         }
         #chart-container {
-            min-height: 350px; 
+            min-height: 450px; /* Aumentado para mejor visibilidad */
             background-color: #ffffff; 
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
@@ -69,7 +69,6 @@
                 </p>
 
                 <div class="flex flex-col gap-4 mb-6">
-                    <!-- CORRECCIÓN: Cambiado a type="text" para permitir el signo menos en móvil -->
                     <input type="text" id="inputX" placeholder="Ingresa un valor de X (e.g., -10, 0, 8)"
                            class="p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition duration-150">
                     <button onclick="getPrediction()"
@@ -107,8 +106,6 @@
             // --- DATOS Y MODELO (Cerebro JS) ---
 
             // Resultados finales precisos de la ejecución de neuron.py (Compresión con Pérdida)
-            // NOTA: Se usan números simples como claves para la lógica interna de JS.
-            // La función formatDictionary se encarga de mostrar el signo '+' donde corresponde.
             const MRLS_DICT = {
                 // X: [Pendiente (P), Ordenada (O)]
                 "-8": [-1.00, -12.00], // Segmento [-8.0, -6.0]
@@ -134,7 +131,6 @@
              */
             function formatDictionary(dict) {
                 // 1. Obtener claves como números y ordenarlas
-                // Usamos solo las claves que representan inicios de segmento activos (excluyendo el límite final 6:NaN)
                 const keys = Object.keys(dict).map(Number).sort((a, b) => a - b);
                 
                 let formattedText = "{\n";
@@ -279,12 +275,12 @@
 
             function setupChart() {
                 const container = document.getElementById('chart-container');
-                // Usa el ancho del cliente o un valor fijo si es 0 (para evitar fallos de renderizado)
                 const containerWidth = container.clientWidth || 600; 
                 
                 const margin = {top: 20, right: 30, bottom: 40, left: 50};
                 const width = containerWidth - margin.left - margin.right;
-                const height = 400 - margin.top - margin.bottom;
+                // Altura fija del contenedor CSS (450) menos los márgenes
+                const height = 450 - margin.top - margin.bottom; 
 
                 // 1. Limpia el contenedor
                 d3.select(container).select("svg").remove();
@@ -308,7 +304,9 @@
 
                 // Rango extendido para mostrar la extrapolación
                 const xRange = [minX - 3, maxX + 3]; 
-                const yRange = [minY - 5, maxY + 5];
+                
+                // CORRECCIÓN CLAVE: Ampliamos el rango Y para que las extrapolaciones sean visibles
+                const yRange = [minY - 5, maxY + 20]; 
 
                 // 4. Define las Escalas
                 xScale = d3.scaleLinear()
