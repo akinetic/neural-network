@@ -111,11 +111,11 @@
                 // X: [Pendiente (P), Ordenada (O)]
                 "-8": [-1.00, -12.00], // Segmento [-8.0, -6.0]
                 "-6": [0.00, -6.00],   // Segmento [-6.0, -4.0] (Elimina -5.0)
-                "-4": [1.00, -2.00],   // Segmento [-4.0, 0.0] (Elimina -2.0)
-                "0": [2.00, 0.00],     // Segmento [0.0, 2.0]
+                "-4": [1.00, -2.00],   // Segmento [-4.0, -2.0] (Neurona -2.0 mantenida)
+                "-2": [2.00, 0.00],    // Segmento [-2.0, 2.0] (CORREGIDO: Extiende hasta X=2.0, elimina X=0.0)
                 "2": [3.00, -2.00],    // Segmento [2.0, 4.0] (Elimina 3.0)
                 "4": [4.00, -6.00],    // Segmento [4.0, 6.0]
-                "6": [NaN, NaN]        // Extremo Mayor (Límite)
+                "6": [NaN, NaN]        // Extremo Mayor (Límite, el segmento 4.0 aplica hasta aquí)
             };
             
             // Puntos originales para la gráfica
@@ -156,9 +156,11 @@
              * Implementación en JS de la función predict(x, dictionary) (Sección III & VII)
              */
             function predictMRLS(x) {
+                // Obtener claves ordenadas de los puntos de inicio de segmento
                 const keys = Object.keys(MRLS_DICT).map(Number).sort((a, b) => a - b);
                 
-                const minX = keys[0]; 
+                const minX = keys[0]; // -8.0
+                // El penúltimo elemento es la clave del último segmento válido (4.0)
                 const maxXSegmentKey = keys[keys.length - 2]; 
                 
                 let targetX = null;
@@ -171,6 +173,7 @@
                 } else {
                     // 1. Búsqueda del segmento activo (Xn más próximo menor o igual)
                     for (let i = keys.length - 1; i >= 0; i--) {
+                        // Buscar el punto clave que es menor o igual a X, y que tiene parámetros válidos
                         if (x >= keys[i] && !isNaN(MRLS_DICT[keys[i].toString()][0])) {
                             targetX = keys[i];
                             break;
@@ -178,6 +181,7 @@
                     }
 
                     // --- Generalización: Extremo Mayor (X > punto final) ---
+                    // Si el segmento encontrado es el último válido (4.0), y X supera el límite final (6.0)
                     if (targetX === maxXSegmentKey && x > keys[keys.length - 1]) {
                         description = `EXTRAPOLACIÓN Mayor`;
                     }
@@ -187,8 +191,8 @@
                     const [P, O] = MRLS_DICT[targetX.toString()];
                     
                     if (isNaN(P) || isNaN(O)) {
-                        // Esto solo debería ocurrir si targetX apunta al último punto (6.0)
-                        targetX = maxXSegmentKey; // Forzar al segmento válido anterior (4.0)
+                        // Caso de fallo, aunque no debería ocurrir con la lógica de búsqueda
+                        targetX = maxXSegmentKey; 
                         const [P_new, O_new] = MRLS_DICT[targetX.toString()];
                         const yPredicted = x * P_new + O_new;
                         return {
@@ -299,11 +303,13 @@
                     .range([height, 0]);
 
                 // 5. Dibuja los Ejes
+                // Eje X (horizontal) - movido al valor y=0
                 svg.append("g")
                     .attr("transform", `translate(0,${yScale(0)})`)
                     .call(d3.axisBottom(xScale).tickSizeOuter(0))
                     .attr("class", "axis");
 
+                // Eje Y (vertical) - movido al valor x=0
                 svg.append("g")
                     .attr("transform", `translate(${xScale(0)},0)`)
                     .call(d3.axisLeft(yScale).tickSizeOuter(0))
@@ -318,13 +324,13 @@
                 // 7. Dibuja la Extrapolación (Menor y Mayor)
                 
                 // --- Extrapolación Menor (izquierda) ---
-                const minXSegment = MRLS_DICT[mrlsKeys[0].toString()];
+                const minXSegment = MRLS_DICT[mrlsKeys[0].toString()]; // Segmento [-8.0]
                 if (minXSegment && !isNaN(minXSegment[0])) {
                     const P = minXSegment[0];
                     const O = minXSegment[1];
-                    const xStart = mrlsKeys[0];
+                    const xStart = mrlsKeys[0]; // X=-8.0 (punto de inicio del segmento)
                     const yStart = xStart * P + O;
-                    const xEnd = xRange[0];
+                    const xEnd = xRange[0]; // X=-11.0 (límite del gráfico)
                     const yEnd = xEnd * P + O;
 
                     svg.append("line")
@@ -339,17 +345,23 @@
                 }
 
                 // --- Extrapolación Mayor (derecha) ---
-                const maxXSegment = MRLS_DICT[mrlsKeys[mrlsKeys.length - 2].toString()];
+                const maxXSegmentIndex = mrlsKeys.length - 2; // Índice de la clave del último segmento válido (4.0)
+                // El punto de inicio de la extrapolación debe ser el final del último segmento válido (X=6.0)
+                const xExtrapolStart = mrlsKeys[mrlsKeys.length - 1]; // X=6.0
+                const maxXSegment = MRLS_DICT[mrlsKeys[maxXSegmentIndex].toString()]; // Segmento [4.0]
+                
                 if (maxXSegment && !isNaN(maxXSegment[0])) {
-                    const P = maxXSegment[0];
-                    const O = maxXSegment[1];
-                    const xStart = mrlsKeys[mrlsKeys.length - 2];
-                    const yStart = xStart * P + O;
-                    const xEnd = xRange[1];
+                    const P = maxXSegment[0]; // Pendiente del segmento [4.0, 6.0]
+                    const O = maxXSegment[1]; // Ordenada del segmento [4.0, 6.0]
+                    
+                    // Calculamos Y en X=6.0 (punto de inicio de la extrapolación)
+                    const yStart = xExtrapolStart * P + O; 
+                    const xEnd = xRange[1]; // X=9.0 (límite del gráfico)
                     const yEnd = xEnd * P + O;
 
+                    // Dibujar línea desde X=6.0 (final del segmento) hasta X=9.0 (extremo del gráfico)
                     svg.append("line")
-                        .attr("x1", xScale(xStart))
+                        .attr("x1", xScale(xExtrapolStart)) 
                         .attr("y1", yScale(yStart))
                         .attr("x2", xScale(xEnd))
                         .attr("y2", yScale(yEnd))
@@ -395,6 +407,7 @@
                     .attr("opacity", 0.8);
 
                 // 10. Dibuja las Neuronas Comprimidas (puntos clave del MRLS)
+                // Omitimos el último punto (X=6.0) que solo es un límite
                 const compressedPoints = mrlsKeys
                     .slice(0, -1) 
                     .map(x => ({x: x, y: predictMRLS(x).prediction}))
