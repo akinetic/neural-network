@@ -3,89 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modelo de Regresión Lineal Segmentada (MRLS)</title>
+    <title>MRLS: Modelo de Regresión Lineal Segmentada</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Configuración para usar la fuente Inter -->
+    <!-- D3.js para la visualización gráfica -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f7f7f7;
+            background-color: #eef2ff; /* Azul muy claro */
         }
-        /* Estilo para un mejor contraste en los resultados */
         .result-box {
             background-color: #f0f9ff;
             border-left: 4px solid #0ea5e9;
+        }
+        /* Estilos para el gráfico SVG */
+        .axis path, .axis line {
+            fill: none;
+            stroke: #d1d5db; /* Gris claro */
+            shape-rendering: crispEdges;
+        }
+        .segment-line {
+            stroke-width: 3px;
+            fill: none;
+            stroke-linecap: round;
         }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
 
-    <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-xl p-6 md:p-10">
+    <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-xl p-6 md:p-10">
         <header class="mb-8 border-b pb-4">
-            <h1 class="text-3xl font-extrabold text-blue-700">MRLS: Modelo de Regresión Lineal Segmentada</h1>
-            <p class="text-gray-500 mt-2">Frontend de demostración para el algoritmo de compresión neuronal (`neuron.py`).</p>
+            <h1 class="text-3xl font-extrabold text-indigo-700">MRLS: Regresión Lineal Segmentada</h1>
+            <p class="text-gray-500 mt-2">Demostración del algoritmo de compresión neuronal (`neuron.py`).</p>
         </header>
 
-        <!-- Sección de Demostración del Modelo Comprimido -->
-        <section class="mb-10">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Predicción Instantánea (Sección VII)</h2>
-            <p class="text-gray-600 mb-4">
-                Ingresa un valor de X para obtener una predicción basada en el modelo final, comprimido y generalizado (MRLS).
-            </p>
-
-            <div class="flex flex-col md:flex-row gap-4 mb-6">
-                <input type="number" id="inputX" placeholder="Ingresa un valor de X (e.g., -10, 0, 8)"
-                       class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm transition duration-150">
-                <button onclick="getPrediction()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-md hover:shadow-lg">
-                    Calcular Predicción
-                </button>
+        <!-- Contenedor del Gráfico -->
+        <section class="mb-10 p-4 border border-indigo-200 rounded-lg bg-indigo-50">
+            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">Gráfico del Modelo Comprimido</h2>
+            <div id="chart-container" class="w-full" style="height: 400px;">
+                <!-- Aquí se dibujará el gráfico D3.js -->
             </div>
-
-            <!-- Resultado de la Predicción -->
-            <div id="predictionResult" class="result-box p-4 rounded-lg hidden">
-                <p class="font-medium text-gray-700">Resultado:</p>
-                <p id="resultText" class="text-xl font-extrabold text-blue-800 mt-1"></p>
-                <p id="resultSegment" class="text-sm text-gray-500 mt-2"></p>
-            </div>
+            <p class="text-sm text-gray-500 mt-2 text-center">La línea morada representa la función lineal a trozos final de tu modelo.</p>
         </section>
 
-        <!-- Sección de Data y Estructura -->
-        <section>
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">2. Estructura del MRLS Comprimido</h2>
-            <p class="text-gray-600 mb-4">
-                Este es el diccionario final (`compressed_lossy_dict`) de tu modelo MRLS. Cada punto (Clave X) almacena el Peso (P) y el Sesgo (O) del segmento que comienza en X.
-            </p>
-
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <p class="font-mono text-xs text-gray-600 mb-2">
-                    // Diccionario: { X_inicio_segmento: [Pendiente (Peso), Ordenada (Sesgo)] }
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Sección de Predicción -->
+            <section class="mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Predicción Instantánea</h2>
+                <p class="text-gray-600 mb-4">
+                    Ingresa un valor de X para obtener una predicción del MRLS (incluye Generalización en extremos).
                 </p>
-                <pre id="displayDictionary" class="text-sm overflow-x-auto"></pre>
-            </div>
-        </section>
 
+                <div class="flex flex-col gap-4 mb-6">
+                    <input type="number" id="inputX" placeholder="Ingresa un valor de X (e.g., -10, 0, 8)"
+                           class="p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition duration-150">
+                    <button onclick="getPrediction()"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-md hover:shadow-lg">
+                        Calcular Predicción
+                    </button>
+                </div>
+
+                <!-- Resultado de la Predicción -->
+                <div id="predictionResult" class="result-box p-4 rounded-lg hidden">
+                    <p class="font-medium text-gray-700">Resultado:</p>
+                    <p id="resultText" class="text-xl font-extrabold text-indigo-800 mt-1"></p>
+                    <p id="resultSegment" class="text-sm text-gray-500 mt-2"></p>
+                </div>
+            </section>
+
+            <!-- Sección de Estructura -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">2. Estructura del MRLS Comprimido</h2>
+                <p class="text-gray-600 mb-4">
+                    Diccionario final (`compressed_lossy_dict`) usado para las predicciones.
+                </p>
+
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <p class="font-mono text-xs text-gray-600 mb-2">
+                        // Clave: X_inicio | Valor: [Pendiente (Peso), Ordenada (Sesgo)]
+                    </p>
+                    <pre id="displayDictionary" class="text-sm overflow-x-auto text-gray-700"></pre>
+                </div>
+            </section>
+        </div>
+        
         <!-- Script principal de JavaScript -->
         <script>
-            // Hardcoded: Datos finales después de la Compresión con Pérdida (Sección V)
-            // Estos valores provienen de la ejecución del código neuron.py con el DataFrame de ejemplo.
-            // Keys: [-8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 3.0, 4.0, 6.0]
+            // --- DATOS Y MODELO (Cerebro JS) ---
+
+            // Hardcoded: Datos finales después de la Compresión con Pérdida (Sección V) del neuron.py
             const MRLS_DICT = {
                 // X: [Pendiente (P), Ordenada (O)]
                 "-8": [1.00, 4.00], 
-                "-6": [0.00, -6.00], // Extiende el segmento, eliminando el punto -5.00 con error < 0.03
+                "-6": [0.00, -6.00], 
                 "-4": [1.00, -2.00],
                 "-2": [2.00, 0.00],
                 "0": [2.00, 0.00],
                 "2": [3.00, -2.00],
                 "3": [3.00, -2.00],
                 "4": [4.00, -6.00],
-                "6": [NaN, NaN]     // Extremo Mayor (límite superior)
+                "6": [NaN, NaN] // Extremo Mayor (límite superior)
             };
             
-            // Muestra el diccionario en formato JSON legible
+            // Los puntos originales antes de la compresión
+            const ORIGINAL_DATA = [
+                {x: -8.0, y: -4.0}, {x: -6.0, y: -6.0}, {x: -5.0, y: -6.01}, {x: -4.0, y: -6.0},
+                {x: -2.0, y: -4.0}, {x: 0.0, y: 0.0}, {x: 2.0, y: 4.0}, {x: 3.0, y: 7.0},
+                {x: 4.0, y: 10.0}, {x: 6.0, y: 18.0}
+            ].map(d => ({ x: d.x, y: d.y }));
+
+
+            // Muestra el diccionario en formato legible
             document.getElementById('displayDictionary').textContent = JSON.stringify(MRLS_DICT, null, 2)
                                                                             .replace(/"/g, '')
                                                                             .replace(/NaN/g, 'null');
@@ -93,9 +124,9 @@
 
             /**
              * Implementación en JS de la función predict(x, dictionary) (Sección III & VII)
-             * Utiliza la búsqueda del segmento y la extrapolación en extremos.
+             * Realiza la búsqueda del segmento y la extrapolación en extremos.
              * @param {number} x El valor de entrada.
-             * @returns {object} Un objeto con la predicción y el segmento usado.
+             * @returns {object} Un objeto con la predicción, el segmento usado y la descripción.
              */
             function predictMRLS(x) {
                 const keys = Object.keys(MRLS_DICT).map(Number).sort((a, b) => a - b);
@@ -109,7 +140,7 @@
                 // --- Generalización: Extremo Menor (X < minX) ---
                 if (x < minX) {
                     targetX = minX;
-                    description = `EXTRAPOLACIÓN Menor (Segmento desde X=${minX})`;
+                    description = `EXTRAPOLACIÓN Menor`;
                 } else {
                     // 1. Búsqueda del segmento activo (Xn más próximo menor o igual)
                     for (let i = keys.length - 1; i >= 0; i--) {
@@ -120,9 +151,9 @@
                     }
 
                     // --- Generalización: Extremo Mayor (X > maxX) ---
-                    if (targetX === null || targetX > maxX) {
+                    if (targetX === null || x > keys[keys.length - 1]) {
                         targetX = maxX;
-                        description = `EXTRAPOLACIÓN Mayor (Segmento desde X=${maxX})`;
+                        description = `EXTRAPOLACIÓN Mayor`;
                     }
                 }
                 
@@ -131,16 +162,16 @@
                     const yPredicted = x * P + O;
 
                     return {
-                        prediction: yPredicted.toFixed(3),
-                        segment: `Usando segmento [${targetX.toFixed(2)}, ...] con P=${P.toFixed(3)} y O=${O.toFixed(3)}`,
+                        prediction: yPredicted,
+                        segment: `Segmento: [X=${targetX.toFixed(2)}] con P=${P.toFixed(2)} y O=${O.toFixed(2)}`,
                         description: description
                     };
                 }
                 
                 return {
-                    prediction: "Error: No se pudo encontrar segmento.",
+                    prediction: null,
                     segment: "",
-                    description: "Error"
+                    description: "Error: No se encontró segmento."
                 };
             }
 
@@ -164,16 +195,232 @@
 
                 const result = predictMRLS(x);
 
-                resultText.innerHTML = `Y = ${result.prediction}`;
-                resultSegment.textContent = `${result.description}. ${result.segment}`;
-                
-                // Muestra la caja de resultados
-                resultBox.classList.remove('hidden');
+                if (result.prediction !== null) {
+                    resultText.innerHTML = `Y = ${result.prediction.toFixed(3)}`;
+                    resultSegment.textContent = `${result.description}. ${result.segment}`;
+                    
+                    // Llama a la función de gráfico para dibujar el punto de predicción
+                    drawPredictionPoint(x, result.prediction);
 
-                // Ejemplo de prueba de generalización:
-                // X = -10.0 => Extremo Menor. Segmento: [-8.0]. P=1.0, O=4.0. Y = -10 * 1 + 4 = -6.0
-                // X = 8.0   => Extremo Mayor. Segmento: [4.0]. P=4.0, O=-6.0. Y = 8 * 4 - 6 = 26.0
-                // X = 5.0   => Interpolación. Segmento: [4.0]. P=4.0, O=-6.0. Y = 5 * 4 - 6 = 14.0
+                } else {
+                    resultText.textContent = result.description;
+                    resultSegment.textContent = "";
+                    
+                    // Oculta el punto si hay un error
+                    d3.select('#prediction-point').remove();
+                }
+                
+                resultBox.classList.remove('hidden');
+            }
+
+            // --- VISUALIZACIÓN D3.js ---
+            
+            let svg, xScale, yScale, lineGenerator;
+
+            function setupChart() {
+                const container = document.getElementById('chart-container');
+                const margin = {top: 20, right: 30, bottom: 40, left: 50};
+                const width = container.clientWidth - margin.left - margin.right;
+                const height = container.clientHeight - margin.top - margin.bottom;
+
+                // 1. Limpia el contenedor
+                d3.select(container).select("svg").remove();
+
+                // 2. Crea el SVG
+                svg = d3.select(container)
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+                // 3. Obtiene el rango de datos (incluye un poco de margen)
+                const allX = ORIGINAL_DATA.map(d => d.x);
+                const allY = ORIGINAL_DATA.map(d => d.y);
+
+                const minX = d3.min(allX);
+                const maxX = d3.max(allX);
+                const minY = d3.min(allY);
+                const maxY = d3.max(allY);
+
+                // Rango extendido para mostrar la extrapolación
+                const xRange = [minX - 3, maxX + 3]; 
+                const yRange = [minY - 5, maxY + 5];
+
+                // 4. Define las Escalas
+                xScale = d3.scaleLinear()
+                    .domain(xRange) 
+                    .range([0, width]);
+
+                yScale = d3.scaleLinear()
+                    .domain(yRange)
+                    .range([height, 0]);
+
+                // 5. Dibuja los Ejes
+                svg.append("g")
+                    .attr("transform", `translate(0,${yScale(0)})`)
+                    .call(d3.axisBottom(xScale).tickSizeOuter(0))
+                    .attr("class", "axis");
+
+                svg.append("g")
+                    .attr("transform", `translate(${xScale(0)},0)`)
+                    .call(d3.axisLeft(yScale).tickSizeOuter(0))
+                    .attr("class", "axis");
+                
+                // 6. Crea los puntos de la línea segmentada
+                const mrlsKeys = Object.keys(MRLS_DICT).map(Number).sort((a, b) => a - b);
+                
+                // Generar los puntos para dibujar la línea
+                let pathData = [];
+                for (let i = 0; i < mrlsKeys.length - 1; i++) {
+                    const xStart = mrlsKeys[i];
+                    const xEnd = mrlsKeys[i+1];
+                    const [P, O] = MRLS_DICT[xStart];
+
+                    // Si P y O son nulos (error o último punto), saltar
+                    if (isNaN(P) || isNaN(O)) continue; 
+
+                    // Punto de inicio del segmento
+                    pathData.push({x: xStart, y: xStart * P + O});
+                    // Punto final del segmento
+                    pathData.push({x: xEnd, y: xEnd * P + O});
+                }
+
+                // 7. Define el Generador de Líneas
+                lineGenerator = d3.line()
+                    .x(d => xScale(d.x))
+                    .y(d => yScale(d.y))
+                    .curve(d3.curveStepAfter); // Usamos stepAfter para segmentos rectos
+
+                // 8. Dibuja la línea del MRLS (la función comprimida)
+                // Usamos un loop para dibujar cada segmento individualmente y manejar los saltos
+                let segmentGroups = [];
+                for (let i = 0; i < mrlsKeys.length - 1; i++) {
+                    const xStart = mrlsKeys[i];
+                    const xEnd = mrlsKeys[i+1];
+                    const [P, O] = MRLS_DICT[xStart];
+
+                    if (isNaN(P) || isNaN(O)) continue; 
+
+                    const segmentPoints = [
+                        {x: xStart, y: xStart * P + O},
+                        {x: xEnd, y: xEnd * P + O}
+                    ];
+                    segmentGroups.push(segmentPoints);
+                }
+
+                // 9. Dibuja la Extrapolación
+                
+                // Extrapolación Menor (desde minX a xRange[0])
+                const minXSegment = MRLS_DICT[mrlsKeys[0]];
+                if (minXSegment && !isNaN(minXSegment[0])) {
+                    const P = minXSegment[0];
+                    const O = minXSegment[1];
+                    const xStart = mrlsKeys[0];
+                    const yStart = xStart * P + O;
+                    const xEnd = xRange[0];
+                    const yEnd = xEnd * P + O;
+
+                    svg.append("line")
+                        .attr("x1", xScale(xStart))
+                        .attr("y1", yScale(yStart))
+                        .attr("x2", xScale(xEnd))
+                        .attr("y2", yScale(yEnd))
+                        .attr("class", "segment-line")
+                        .attr("stroke", "#8b5cf6") /* Púrpura */
+                        .attr("stroke-dasharray", "5,5")
+                        .attr("opacity", 0.6)
+                        .attr("id", "extrapolation-minor");
+                }
+
+                // Extrapolación Mayor (desde maxX a xRange[1])
+                const maxXSegment = MRLS_DICT[mrlsKeys[mrlsKeys.length - 2]];
+                if (maxXSegment && !isNaN(maxXSegment[0])) {
+                    const P = maxXSegment[0];
+                    const O = maxXSegment[1];
+                    const xStart = mrlsKeys[mrlsKeys.length - 2];
+                    const yStart = xStart * P + O;
+                    const xEnd = xRange[1];
+                    const yEnd = xEnd * P + O;
+
+                    svg.append("line")
+                        .attr("x1", xScale(xStart))
+                        .attr("y1", yScale(yStart))
+                        .attr("x2", xScale(xEnd))
+                        .attr("y2", yScale(yEnd))
+                        .attr("class", "segment-line")
+                        .attr("stroke", "#8b5cf6") /* Púrpura */
+                        .attr("stroke-dasharray", "5,5")
+                        .attr("opacity", 0.6)
+                        .attr("id", "extrapolation-major");
+                }
+
+
+                // 10. Dibuja los Segmentos (la línea sólida)
+                segmentGroups.forEach(segment => {
+                    svg.append("line")
+                        .attr("x1", xScale(segment[0].x))
+                        .attr("y1", yScale(segment[0].y))
+                        .attr("x2", xScale(segment[1].x))
+                        .attr("y2", yScale(segment[1].y))
+                        .attr("class", "segment-line")
+                        .attr("stroke", "#4f46e5"); /* Indigo */
+                });
+
+                // 11. Dibuja los Puntos Originales (Original Data)
+                svg.selectAll(".original-point")
+                    .data(ORIGINAL_DATA)
+                    .enter()
+                    .append("circle")
+                    .attr("class", "original-point")
+                    .attr("cx", d => xScale(d.x))
+                    .attr("cy", d => yScale(d.y))
+                    .attr("r", 4)
+                    .attr("fill", "#ef4444") /* Rojo */
+                    .attr("opacity", 0.7);
+
+                // 12. Dibuja las Neuronas Comprimidas (los puntos clave del MRLS)
+                const compressedPoints = mrlsKeys
+                    .slice(0, -1) // Excluye el último NaN
+                    .map(x => ({x: x, y: predictMRLS(x).prediction}))
+                    .filter(d => d.y !== null);
+
+                svg.selectAll(".compressed-neuron")
+                    .data(compressedPoints)
+                    .enter()
+                    .append("circle")
+                    .attr("class", "compressed-neuron")
+                    .attr("cx", d => xScale(d.x))
+                    .attr("cy", d => yScale(d.y))
+                    .attr("r", 5)
+                    .attr("fill", "#10b981") /* Verde esmeralda */
+                    .attr("stroke", "#065f46")
+                    .attr("stroke-width", 1.5);
+            }
+
+            /**
+             * Dibuja un punto de predicción dinámico.
+             */
+            function drawPredictionPoint(x, y) {
+                // Elimina el punto anterior si existe
+                d3.select('#prediction-point').remove();
+                
+                // Dibuja el nuevo punto
+                svg.append("circle")
+                    .attr("id", "prediction-point")
+                    .attr("cx", xScale(x))
+                    .attr("cy", yScale(y))
+                    .attr("r", 7)
+                    .attr("fill", "yellow") 
+                    .attr("stroke", "#374151") 
+                    .attr("stroke-width", 2);
+            }
+
+            // Inicializa el gráfico cuando la ventana se carga
+            window.onload = function() {
+                setupChart();
+                // Maneja el redimensionamiento de la ventana para que el gráfico sea responsive
+                window.addEventListener('resize', setupChart); 
             }
         </script>
     </div>
