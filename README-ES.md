@@ -35,7 +35,21 @@ Para demostrar el proceso, usamos el siguiente conjunto de datos desordenado (En
 [+3.00,+7.00]
 [-2.00,-4.00]
 ```
-Una vez ordenado por $X$, este se convierte en el **Diccionario Base**.
+Una vez ordenado por $X$, este se convierte en el **Diccionario Base**:
+
+```
+// Diccionario Base (Ordenado por X)
+[-8.00,-4.00]
+[-6.00,-6.00]
+[-5.00,-6.01]
+[-4.00,-6.00]
+[-2.00,-4.00]
+[+0.00,+0.00]
+[+2.00,+4.00]
+[+3.00,+7.00]
+[+4.00,+10.0]
+[+6.00,+18.0]
+```
 
 ### 2. Optimización (Sección III)
 
@@ -48,6 +62,21 @@ A partir del diccionario base ordenado, se calcula la función lineal que conect
 
 El resultado es un **Diccionario Optimizado** donde cada clave $X_n$ (el inicio del segmento) almacena la tupla $(P, O)$. Este es el conocimiento explícito del modelo.
 
+**Ejemplo de Diccionario Optimizado (Pesos y Sesgos):**
+
+```
+// Diccionario Optimizado (Pesos y Sesgos)
+[-8.00] (-1.00,-12.0)
+[-6.00] (-0.01,-6.06)
+[-5.00] (+0.01,-5.96)
+[-4.00] (+1.00,-2.00)
+[-2.00] (+2.00,+0.00)
+[+0.00] (+2.00,+0.00)
+[+2.00] (+3.00,-2.00)
+[+3.00] (+3.00,-2.00)
+[+4.00] (+4.00,-6.00)
+```
+
 ### 3. Compresión sin Pérdida (Invarianza Geométrica - Sección IV)
 
 Este paso elimina la redundancia geométrica del modelo. Si tres puntos consecutivos $(X_{n-1}, X_n, X_{n+1})$ se encuentran sobre la misma línea recta, el punto intermedio $X_n$ se considera redundante.
@@ -55,17 +84,44 @@ Este paso elimina la redundancia geométrica del modelo. Si tres puntos consecut
 * **Criterio:** Si $\text{Pendiente}(X_{n-1}) \approx \text{Pendiente}(X_n)$, se elimina el punto $X_n$ del diccionario.
 * **Resultado:** Se eliminan "neuronas" intermedias que no contribuyen a un cambio en la dirección de la curva, logrando una compresión del diccionario **sin pérdida** de información geométrica.
 
+**Ejemplo de Compresión sin Pérdida:**
+
+Se eliminan `[+0.00]` y `[+3.00]` por redundancia de Pendiente, quedando:
+```
+// Diccionario Optimizado (Compresión sin Pérdida)
+[-8.00] (-1.00,-12.0)
+[-6.00] (-0.01,-6.06)
+[-5.00] (+0.01,-5.96)
+[-4.00] (+1.00,-2.00)
+[-2.00] (+2.00,+0.00)
+[+2.00] (+3.00,-2.00)
+[+4.00] (+4.00,-6.00)
+```
+
 ### 4. Compresión con Pérdida (Criterio Humano - Sección V)
 
 Este es el paso de mayor compresión, donde se aplica un **criterio humano** (la tolerancia $\epsilon$) para eliminar puntos cuya contribución al error global es inferior a un umbral predefinido.
 
 * **Tolerancia ($\epsilon$):** Un valor de error máximo aceptable (por ejemplo, $0.03$).
-* **Proceso:** El algoritmo intenta eliminar un punto $X_{\text{actual}}$ y "estirar" el segmento lineal anterior (`P_{prev}, O_{prev}`) hasta $X_{\text{actual}}$.
-* **Criterio de Permanencia:** El punto $X_{\text{actual}}$ se considera **Relevante** y se mantiene si la predicción del segmento anterior extendido ($Y_{\text{hat}}$) genera un error absoluto superior a la tolerancia $\epsilon$ respecto al valor original ($Y_{\text{true}}$) en ese punto.
+* **Criterio de Permanencia:** El punto $X_{\text{actual}}$ se mantiene si el error absoluto al interpolar entre sus vecinos es superior a $\epsilon$.
 
 $$\text{Error} = | Y_{\text{true}} - Y_{\text{hat}} |$$
 
 Si $\text{Error} > \epsilon$, el punto se mantiene. Si $\text{Error} \le \epsilon$, se elimina (compresión con pérdida).
+
+**Ejemplo de Compresión con Pérdida Final ($\epsilon=0.03$):**
+
+Se elimina `[-5.00]` al tener un error de $0.01 \le 0.03$ al ser interpolado entre `[-6.00]` y `[-4.00]`.
+
+```
+// Diccionario Optimizado (Compresión con Pérdida Final)
+[-8.00] (-1.00,-12.0)
+[-6.00] (+0.00,-6.00) // Parámetros ajustados por la interpolación
+[-4.00] (+1.00,-2.00)
+[-2.00] (+2.00,+0.00)
+[+2.00] (+3.00,-2.00)
+[+4.00] (+4.00,-6.00)
+```
 
 ---
 
