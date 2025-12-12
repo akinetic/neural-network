@@ -1,250 +1,179 @@
+# Segmented Linear Regression Model (SLRM)
 
-# Red Neuronal
+> This project implements the Segmented Linear Regression Model (SLRM), an alternative to traditional Artificial Neural Networks (ANNs). The SLRM models datasets with piecewise linear functions, using a **neural compression** process to reduce complexity without compromising precision beyond a user-defined tolerance.
 
-> **Este proyecto presenta una manera alternativa y totalmente distinta de entrenar una red neuronal y una manera muy simplificada de procesar los datos luego de su entrenamiento.**
+The core of the solution is the compression algorithm, which transforms an unordered dataset (`DataFrame` / `X, Y`) into a final, highly optimized dictionary, ready for prediction.
 
----
+## Project Structure
 
-## I. DataFrame
-
-Consideremos que un DataFrame (Purificado) es una Base de Datos acotado no continuo donde cada entrada está asociada con una única salida, por lo tanto, no habiendo dos salidas para una misma entrada. Por otro lado, no habiando tampoco entrada-salida iguales repetidos (es decir, un DataFrame sin Densidad o Profundidad)
-
-En este proyecto, nuestro Dataframe (Purificado) o modelo de juguete es el siguiente:
-
-[-6.00,-6.00]
-
-[+2.00,+4.00]
-
-[-8.00,-4.00]
-
-[+0.00,+0.00]
-
-[+4.00,+10.0]
-
-[-4.00,-6.00]
-
-[+6.00,+18.0]
-
-[-5.00,-6.01]
-
-[+3.00,+7.00]
-
-[-2.00,-4.00]
-
-Donde el primer valor (lado izquierdo) representa la entrada y el segundo valor (lado derecho) representa la salida asociada a la entrada más próxima del lado izquierdo.
+* **`model.py`**: Contains the complete implementation of the training process (Creation, Optimization, Compression) and the prediction function (`predict`). This code generates the final SLRM dictionary consumed by the web application.
+* **`index.html`**: Implementation of the visualization using D3.js and Vanilla JavaScript, which shows the dataset, the SLRM prediction curve (the piecewise linear function), and allows real-time interaction with the prediction function.
 
 ---
 
-## II. Creación del Diccionario Base
+## 🧠 SLRM Architecture: The Training Process (Compression)
 
-La creación del Diccionario Base simplemente consiste en ordenar de menor a mayor los Datos del DataFrame.
+SLRM training is achieved through four main sections, implemented sequentially in `model.py`:
 
-En nuestro modelo de juguete, Diccionario Base es el siguiente:
+### 1. Base Dictionary Creation (Section I and II)
 
-[-8.00,-4.00]
+The SLRM is a **non-iterative** model (Instant Training). The "training" begins by sorting the input dataset (`X, Y`) by the lowest to the highest value of `X`. This sorting transforms the initial `DataFrame` into the fundamental structure of the SLRM: a dictionary where each point `(X, Y)` is indexed by its `X` value.
 
+**Input Set Example:**
+
+To demonstrate the process, we use the following unordered dataset (Input $X$, Output $Y$):
+
+```
 [-6.00,-6.00]
-
-[-5.00,-6.01]
-
-[-4.00,-6.00]
-
-[-2.00,-4.00]
-
-[+0.00,+0.00]
-
 [+2.00,+4.00]
-
-[+3.00,+7.00]
-
-[+4.00,+10.0]
-
-[+6.00,+18.0]
-
-El Diccionario Base ya es funcional a pesar de que aún no está optimizado ni comprimido.
-
-Por ejemplo, si la entrada X coincide con un valor Xn del Diccionario Base entonces el Procedimiento consiste en que la salida es el valor Y asociado a Xn.
-
-Sin embargo, si la entrada X no coincide con un valor Xn del Diccionario Base y además (por el momento) X es mayor que el valor menor Xn y mayor que el valor Xm del Diccionario Base entonces el Procedimiento consiste en que la salida Y, está dada por la siguiente ecuación:
-
-Y = (X - X1) . [ (Y2 - Y1) / (X2 - X1) ] + Y1
-
-Donde X1 el valor más próximo menor a X en el Diccionario Base, X2 es el valor más próximo mayor a X en el Diccionario Base y Y2 y Y1 son los valores asociados a X2 y X1 respectivamente en el Diccionario Base.
-
-Por ejemplo, en nuestro modelo de juguete, si la entrada X es 5 entonces la salida Y, está dada por:
-
-Y = (5 - 4) . [ (18 - 10) / (6 - 4) ] + 10
-
-Y = 14
-
----
-
-## III. Optimización del Diccionario Base
-
-La optimización del Diccinario Base consiste en hacer más funcional al Diccionario Base bajo un determinado criterio o varios.
-
-El criterio más simple elegido por este proyecto consite en primer lugar en obtener las Pendientes(Pesos) y las Ordenadas(Sesgos) de cada par más próximo de los datos del Diccionario Base.
-
-En nuestro ejemplo, resulta:
-
 [-8.00,-4.00]
-
-				(-1.00,-12.0)
-				
-[-6.00,-6.00]
-
-				(-0.01,-6.06)
-				
-[-5.00,-6.01]
-
-				(+0.01,-5.96)
-				
-[-4.00,-6.00]
-
-				(+1.00,-2.00)
-				
-[-2.00,-4.00]
-
-				(+2.00,+0.00)
-				
 [+0.00,+0.00]
-
-				(+2.00,+0.00)
-				
-[+2.00,+4.00]
-
-				(+3.00,-2.00)
-				
-[+3.00,+7.00]
-
-				(+3.00,-2.00)
-				
 [+4.00,+10.0]
-
-				(+4.00,-6.00)
-				
+[-4.00,-6.00]
 [+6.00,+18.0]
+[-5.00,-6.01]
+[+3.00,+7.00]
+[-2.00,-4.00]
+```
+Once sorted by $X$, this becomes the **Base Dictionary**:
 
-Posteriormente, se asocia lo obtenido con el dato más próximo anterior y a cada dato del Diccionario Base se le quita su valor Y, quedando en nuestro ejemplo de la siguiente manera:
+```
+// Base Dictionary (Sorted by X)
+[-8.00,-4.00]
+[-6.00,-6.00]
+[-5.00,-6.01]
+[-4.00,-6.00]
+[-2.00,-4.00]
+[+0.00,+0.00]
+[+2.00,+4.00]
+[+3.00,+7.00]
+[+4.00,+10.0]
+[+6.00,+18.0]
+```
 
+### 2. Optimization (Section III)
+
+Based on the sorted base dictionary, the linear function connecting each pair of adjacent points $(x_1, y_1)$ and $(x_2, y_2)$ is calculated. This step transforms the data $(X, Y)$ into the segment parameters:
+
+* **Slope (P)**: Represents the **Weight** (`W`) of the segment.
+    $$P = \frac{y_2 - y_1}{x_2 - x_1}$$
+* **Y-Intercept (O)**: Represents the **Bias** (`B`) of the segment.
+    $$O = y_1 - P \cdot x_1$$
+
+The result is an **Optimized Dictionary** where each key $X_n$ (the start of the segment) stores the tuple $(P, O)$. This is the explicit knowledge of the model.
+
+**Optimized Dictionary Example (Weights and Biases):**
+
+```
+// Optimized Dictionary (Weights and Biases)
 [-8.00] (-1.00,-12.0)
-
 [-6.00] (-0.01,-6.06)
-
 [-5.00] (+0.01,-5.96)
-
 [-4.00] (+1.00,-2.00)
-
 [-2.00] (+2.00,+0.00)
-
 [+0.00] (+2.00,+0.00)
-
 [+2.00] (+3.00,-2.00)
-
 [+3.00] (+3.00,-2.00)
-
 [+4.00] (+4.00,-6.00)
+```
 
-[+6.00] (-----,-----)
+### 3. Lossless Compression (Geometric Invariance - Section IV)
 
-Este nuevo Diccionario Optimizado como se verá luego es mucho más funcional que el Diccionario Base y ya es funcional también como lo es el Diccinario Base para poder ser utilizado.
+This step eliminates the geometric redundancy of the model. If three consecutive points $(X_{n-1}, X_n, X_{n+1})$ lie on the same straight line, the intermediate point $X_n$ is considered redundant.
 
-Por ejemplo, si la entrada X es mayor o igual que el valor menor Xn y mayor o igual que el valor Xm del Diccionario Optmizado (por el momento) entonces el Procedimiento consiste en que la salida Y, está dada por la siguiente ecuación:
+* **Criterion:** If $\text{Slope}(X_{n-1}) \approx \text{Slope}(X_n)$, the point $X_n$ is removed from the dictionary.
+* **Result:** Intermediate "neurons" that do not contribute to a change in the curve's direction are eliminated, achieving **lossless** compression of the dictionary's geometric information.
 
-Y = X . Pendiente(Peso) + Ordenada(Sesgo)
+**Lossless Compression Example:**
 
-Donde la Pendiente(Peso) y la Ordenada(Sesgo) son la Pendiente(Peso) y la Ordenada(Sesgo) asociadas al Xn más próximo menor o igual del Diccionario Optimizado.
-
-Por ejemplo, en nuestro modelo de juguete, si la entrada X es 5 entonces la salida Y, está dada por:
-
-Y = 5 . 4 - 6
-
-Y = 14
-
----
-
-## IV. Compresión sin Perdida de Información
-
-La Compresión sin Perdida de Información consiste en eliminar Datos o Neuronas redundantes del Diccionario Optimizado.
-
-Básicamente consiste en eliminar el Dato o la Neurona con el valor más próximo mayor que tiene igual Pendiente al Dato o Neurona más próximo menor anterior, dado que ese Dato o Neurona redundante está implícitamente contenido por el Dato o Neurona más proximo menor anterior.
-
-En nuestro modelo de juguete, los Datos o las Neuronas Redundantes son: [+0.00] (+2.00,+0.00) y [+3.00] (+3.00,-2.00), quedando, por lo tanto, el Diccionario Optimizado de nuestro modelo de juquete y sin perdida alguna de información de la siguiente manera:
-
+`[+0.00]` and `[+3.00]` are removed due to Slope redundancy, resulting in:
+```
+// Optimized Dictionary (Lossless Compression)
 [-8.00] (-1.00,-12.0)
-
 [-6.00] (-0.01,-6.06)
-
 [-5.00] (+0.01,-5.96)
-
 [-4.00] (+1.00,-2.00)
-
 [-2.00] (+2.00,+0.00)
-
 [+2.00] (+3.00,-2.00)
-
 [+4.00] (+4.00,-6.00)
+```
 
-[+6.00] (-----,-----)
+### 4. Lossy Compression (Human Criterion - Section V)
 
----
+This is the step for maximum compression, where a **human criterion** (the tolerance $\epsilon$) is applied to eliminate points whose contribution to the global error is below a predefined threshold.
 
-## V. Compresión con Perdida de Información no Relevante
+* **Tolerance ($\epsilon$):** An acceptable maximum error value (e.g., $0.03$).
+* **Permanence Criterion:** The point $X_{\text{current}}$ is considered **Relevant** and is kept if the absolute error when interpolating between its neighbors is greater than $\epsilon$.
 
-La Compresión con Perdida de Información no Relevante consiste en eliminar Datos o Neuronas no relevantes del Diccionario Optimizado.
+$$\text{Error} = | Y_{\text{true}} - Y_{\text{hat}} |$$
 
-Básicamente consiste en eliminar el Dato o la Neurona cuya eliminación no produce localmente un cambio relevante en el resultado de salida.
+If $\text{Error} > \epsilon$, the point is kept. If $\text{Error} \le \epsilon$, it is removed (lossy compression).
 
-Cuando un Dato o una Neurona no es relevante localmente depende de la exactitud que se quiere obtener de la Red Neuronal
+**Final Lossy Compression Example ($\epsilon=0.03$):**
 
-En nuestro modelo de juguete se ha determinado que una diferencia menor a 0.03 entre el DataFrame y el valor de salida dado por el Diccionario Optimizado y Comprimido es aceptable.
+`[-5.00]` is removed as its error is $0.01 \le 0.03$ when interpolated between `[-6.00]` and `[-4.00]`.
 
-Por lo tanto, en nuestro modelo de juguete, el Dato o Neurona Redundantes son: [-5.00] (+0.01,-5.96), quedando, por lo tanto, el Diccionario Optimizado de nuestro modelo de juquete y con perdida de información no relevante de la siguiente manera:
-
+```
+// Optimized Dictionary (Final Lossy Compression)
 [-8.00] (-1.00,-12.0)
-
-[-6.00] (+0.00,-6.00)
-
+[-6.00] (+0.00,-6.00) // Adjusted parameters due to interpolation
 [-4.00] (+1.00,-2.00)
-
 [-2.00] (+2.00,+0.00)
-
 [+2.00] (+3.00,-2.00)
-
 [+4.00] (+4.00,-6.00)
-
-[+6.00] (-----,-----)
-
-Ahora en el Diccionario Optimizado y Comprimido de nuestro modelo de juguete para X igual a -5 el resultado es -6, obteniendose solamente una diferencia de 0.01 con respecto al dato real del DataFrame o Diccionario Base (-6.01)
+```
 
 ---
 
-## VI. Otras Compresiones sin Perdida de Información y/o con Perdida de Información no Significativa
+## 5. SLRM Extensions and Operational Properties
 
-Funciones Globales y sobre todo Locales (Ajuste en el Diccionario Comprimido y en el Procedimiento )
+The modular nature of the SLRM segments provides operational properties that distinguish it from iterative neural network models:
 
----
+### 5.1 Modularity and Hot Swapping
+Since each segment is autonomous and does not interact with the weights of other segments, the SLRM allows for **Hot Swapping**. This means that a specific sector of the dictionary can be updated, optimized, or new data added **in real-time**, without interrupting the inference operation of the rest of the network.
 
-## VII. Más allá del Extremo Menor y Mayor
+### 5.2 Non-Linear Activation and Multimodal Compression
+The compression process can be extended to locally replace a set of multiple linear segments with a single higher-order function (e.g., quadratic or exponential), provided the substitution error remains within tolerance ($\epsilon$). This generates **Multimodal Compression** and further compacts the architecture.
 
----
-
-## VIII. Observaciones Generales
-
-+ La Red Neuronal puede analizar y modifical el Diccionario Optimizado sin tener en cuenta el resto del Diccionario y sin producir tampoco cambios al resto del Diccionario.
-
-+ Se podría visualizar como que cada Neurona se ocupa de un sector de la Red y que su funcionamiento no altera la Red más allá de ese sector de la Red.
-
-+ Además entre las Neuronas locales (más próximas entre sí) se puede asocian y/o unificar para hacer de la Red Neuronal más compacta y eficiente
-
-+ Lo ideal sería que el Diccionario Optimizado sea lo más compacto posible, que la velocidad de entrada/salida sea lo más rápida posible y con el menor costo posible, y finalmente que la Red Neuronal pueda evolucionar de la manera más flexible/sencilla posible.
+### 5.3 Transparent Box (Full Interpretability)
+The SLRM is a "transparent box" model. It stores knowledge explicitly (Slope $P$ and Y-Intercept $O$ for each segment). This allows for full traceability of every prediction and is ideal for environments requiring high interpretability and auditing.
 
 ---
 
-## IX. Bibliografía
+## 🎯 Prediction and Generalization (Section VII)
+
+The `predict(X)` function uses the final, compressed SLRM dictionary.
+
+1. **Active Segment Search:** For a new input $X$, the model finds the key $X_n$ that is closest to and less than or equal to $X$ ($X_n \le X$). This $X_n$ defines the active linear segment $(P, O)$.
+2. **Master Equation:** The linear formula is applied to obtain the predicted output $Y_{\text{predicted}}$.
+
+$$Y_{\text{predicted}} = X \cdot P + O$$
+
+### Generalization (Extrapolation)
+
+The SLRM handles extrapolation outside the training limits in the following way:
+
+* **Segmental Extrapolation (Short Distance):** The boundary linear segment (the first or the last) is extended to infinity, using the parameters $(P, O)$ of the segment closest to the limit.
+* **Zonal Projection (Advanced Metaprogression):** In advanced models, the SLRM can analyze the progression of the Weights ($P$) and Biases ($O$) near the limits to detect higher-order patterns. This allows for projecting the next segment based on the **global pattern of the network**, offering potentially more accurate long-distance extrapolation.
+
+---
+
+## IX. Conceptual Bibliography
+
+The following conceptual references inspire or contrast with the fundamental principles of the Segmented Linear Regression Model (SLRM):
+
+1.  Segmented Regression and Curve Fitting: Works on approximating complex functions using piecewise defined regression models.
+2.  Quantization and Model Compression: Techniques aimed at reducing the size of neural models for implementation on memory-constrained hardware.
+3.  White Box Models (Interpretability): Studies on the traceability and understanding of a prediction model's decisions.
+4.  Modularity and Decoupled Architectures: Software design principles that allow for local modification without collateral effects.
+5.  Training Processes and Optimization Algorithms: Concepts related to training efficiency and non-iterative training.
+6.  Handling Sparse Data and Outliers: Techniques to ensure model robustness against isolated points or inconsistencies in input data.
+7.  Associative Memory Systems: The Optimized Dictionary as a form of efficient data structure for fast pattern storage and retrieval.
+8.  Fault-Tolerant System Design: Principles that allow components to be modified or updated (Hot Swapping) without interrupting global service.
+9.  Time Series Theory: Works on detecting progression patterns (Metaprogression) to perform more accurate long-range extrapolations.
 
 ---
 
 Alex Kinetic
 
-LICENCIA MIT
+MIT LICENSE
