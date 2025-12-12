@@ -1,28 +1,28 @@
 # -*- coding: utf-8 -*-
-# model.py: Implementación del Modelo de Regresión Lineal Segmentada (MRLS)
-# con un algoritmo de compresión neuronal con pérdida (lossy compression).
+# model_en.py: Segmented Linear Regression Model (SLRM) Implementation
+# with a lossy neural compression algorithm.
 #
-# Este archivo contiene el flujo COMPLETO de simulación para generar el
-# diccionario comprimido que se utiliza en la función de predicción.
+# This file contains the COMPLETE simulation flow for generating the
+# compressed dictionary used in the prediction function.
 
 import math
 
-# --- FUNCIONES DE UTILIDAD Y DISPLAY ---
+# --- UTILITY AND DISPLAY FUNCTIONS ---
 
 def format_key_for_display(key):
-    """Asegura que las claves se muestren con dos decimales y el signo '+' si son positivas."""
+    """Ensures keys are displayed with two decimals and the '+' sign if positive."""
     if key >= 0:
         return f"+{key:.2f}"
     return f"{key:.2f}"
 
-def print_mrls_dictionary(dictionary, title="Diccionario MRLS"):
-    """Imprime cualquier diccionario MRLS con formato mejorado y ordenado."""
+def print_slrm_dictionary(dictionary, title="SLRM Dictionary"):
+    """Prints any SLRM dictionary with enhanced and sorted formatting."""
     
-    # Ordenar las claves numéricamente
+    # Sort keys numerically
     sorted_keys = sorted(dictionary.keys())
     
     print(f"\n--- {title} ---")
-    print("// Clave: X_inicio | Valor: [Pendiente (P), Ordenada (O)]")
+    print("// Key: X_start | Value: [Slope (P), Intercept (O)]")
     print("{")
     
     for key in sorted_keys:
@@ -30,9 +30,9 @@ def print_mrls_dictionary(dictionary, title="Diccionario MRLS"):
         
         key_str = format_key_for_display(key)
         
-        # Usamos math.isnan para verificar si el valor es indefinido (NaN)
+        # Use math.isnan to check if the value is undefined (NaN)
         p_str = f"{P:7.2f}" if not math.isnan(P) else "   NaN"
-        # Incluimos el signo en la ordenada para claridad en la impresión
+        # Include the sign for the intercept for clarity in printing
         o_str = f"{O:+7.2f}" if not math.isnan(O) else "   NaN"
         
         print(f"  {key_str}: [ {p_str}, {o_str} ]")
@@ -41,27 +41,27 @@ def print_mrls_dictionary(dictionary, title="Diccionario MRLS"):
     print("-----------------------------------")
 
 
-# --- SECCIONES DE LA COMPRESIÓN MRLS ---
+# --- SLRM COMPRESSION SECTIONS ---
 
 def create_base_dictionary(dataframe):
     """
-    Sección I & II: Crea el Diccionario Base (Entrada: X, Salida: Y) ordenando 
-    los datos de menor a mayor por la Entrada (X).
+    Section I & II: Creates the Base Dictionary (Input: X, Output: Y) by 
+    sorting the data from smallest to largest by the Input (X).
     """
-    print("--- 1. Creando Diccionario Base (Entrenamiento Instantáneo) ---")
-    # Aseguramos que las claves y valores sean float
+    print("--- 1. Creating Base Dictionary (Instant Training) ---")
+    # Ensure keys and values are float
     base_dict = {float(x): float(y) for x, y in dataframe} 
     sorted_dict = dict(sorted(base_dict.items()))
     
-    print(f"Diccionario Base Creado (Total de Puntos: {len(sorted_dict)})")
+    print(f"Base Dictionary Created (Total Points: {len(sorted_dict)})")
     return sorted_dict
 
 def optimize_dictionary(base_dict):
     """
-    Sección III: Optimiza el Diccionario Base calculando la Pendiente (Peso) y 
-    la Ordenada al Origen (Sesgo) para cada segmento entre pares de puntos.
+    Section III: Optimizes the Base Dictionary by calculating the Slope (Weight) 
+    and the Intercept (Bias) for each segment between pairs of points.
     """
-    print("\n--- 2. Optimizando Diccionario (Calculando Pesos y Sesgos) ---")
+    print("\n--- 2. Optimizing Dictionary (Calculating Weights and Biases) ---")
     keys = list(base_dict.keys())
     optimized_dict = {}
 
@@ -70,239 +70,239 @@ def optimize_dictionary(base_dict):
         x2, y2 = keys[i+1], base_dict[keys[i+1]]
         
         if x2 - x1 == 0:
-            pendiente = float('nan')
-            ordenada = float('nan')
+            slope = float('nan')
+            intercept = float('nan')
         else:
-            # Fórmula de la Pendiente (Peso)
-            pendiente = (y2 - y1) / (x2 - x1)
-            # Fórmula de la Ordenada al Origen (Sesgo)
-            ordenada = y1 - pendiente * x1
+            # Slope (Weight) Formula
+            slope = (y2 - y1) / (x2 - x1)
+            # Intercept (Bias) Formula
+            intercept = y1 - slope * x1
         
-        optimized_dict[x1] = (pendiente, ordenada)
+        # Storing as (Slope, Intercept)
+        optimized_dict[x1] = (slope, intercept)
 
-    # El último punto: Marca el límite superior, su segmento es indefinido.
+    # The last point: Marks the upper limit, its segment is undefined.
     optimized_dict[keys[-1]] = (float('nan'), float('nan'))
     
-    print(f"Número de segmentos iniciales: {len(optimized_dict) - 1}")
+    print(f"Initial number of segments: {len(optimized_dict) - 1}")
     return optimized_dict
 
 def compress_lossless(optimized_dict, epsilon=1e-6):
     """
-    Sección IV: Compresión sin Pérdida (Invarianza Geométrica).
-    Elimina los puntos intermedios donde la Pendiente del segmento adyacente es idéntica.
+    Section IV: Lossless Compression (Geometric Invariance).
+    Removes intermediate points where the Slope of the adjacent segment is identical.
     """
-    print("\n--- 3. Compresión sin Pérdida (Aplicando Invarianza Geométrica) ---")
+    print("\n--- 3. Lossless Compression (Applying Geometric Invariance) ---")
     keys = list(optimized_dict.keys())
     compressed_dict = {}
     
     if not keys:
         return {}
 
-    # El primer punto siempre se mantiene como punto de partida
+    # The first point is always kept as the starting point
     compressed_dict[keys[0]] = optimized_dict[keys[0]]
 
     for i in range(1, len(keys) - 1):
         x_current = keys[i]
         
-        pendiente_current, _ = optimized_dict[x_current]
-        pendiente_prev, _ = optimized_dict[keys[i-1]]
+        slope_current, _ = optimized_dict[x_current]
+        slope_prev, _ = optimized_dict[keys[i-1]]
         
-        # Comprobación de la Invarianza: Si la diferencia de pendientes es mayor que epsilon, mantenemos el punto.
-        # Esto reemplaza el uso de np.isclose
-        if abs(pendiente_current - pendiente_prev) > epsilon:
+        # Invariance check: If the difference in slopes is greater than epsilon, we keep the point.
+        if abs(slope_current - slope_prev) > epsilon:
             compressed_dict[x_current] = optimized_dict[x_current]
     
-    # Agregamos el extremo mayor
+    # Add the upper extreme point
     compressed_dict[keys[-1]] = optimized_dict[keys[-1]]
     
-    print(f"Segmentos Redundantes Eliminados (Puntos restantes): {len(compressed_dict) - 1}")
+    print(f"Redundant Segments Removed (Remaining Points): {len(compressed_dict) - 1}")
     return compressed_dict
 
 
 def compress_lossy(compressed_dict, base_dict, tolerance=0.03):
     """
-    Sección V: Compresión con Pérdida (Criterio Humano).
-    Elimina Neuronas/puntos cuya eliminación no produce un error superior a la 
-    tolerancia en los puntos originales del Diccionario Base.
+    Section V: Lossy Compression (Human Criterion).
+    Removes Neurons/points whose removal does not produce an error greater than the 
+    tolerance at the original Base Dictionary points.
     """
-    print(f"\n--- 4. Compresión con Pérdida (Tolerancia Máxima: {tolerance:.3f}) ---")
+    print(f"\n--- 4. Lossy Compression (Maximum Tolerance: {tolerance:.3f}) ---")
     
-    # Transformamos el diccionario a una lista de puntos que representan segmentos activos
+    # Transform the dictionary into a list of points representing active segments
     compressed_list = [(x, p, o) for x, (p, o) in compressed_dict.items() if not math.isnan(p)]
     
     final_compressed = []
     
     if not compressed_list:
-        # Retorna el diccionario con solo el punto final (NaN, NaN) si estaba vacío
+        # Returns the dictionary with only the end point (NaN, NaN) if it was empty
         if compressed_dict:
              return {list(compressed_dict.keys())[-1]: (float('nan'), float('nan'))}
         return {}
 
-    # El primer punto siempre se mantiene como punto de partida
+    # The first point is always kept as the starting point
     final_compressed.append(compressed_list[0])
 
     for i in range(1, len(compressed_list)):
         x_current, p_current, o_current = compressed_list[i]
         
-        # Intentamos 'saltar' el punto actual (x_current) y usar la pendiente del punto anterior (x_prev)
+        # Try to 'skip' the current point (x_current) and use the slope of the previous point (x_prev)
         x_prev, p_prev, o_prev = final_compressed[-1] 
         
-        # 1. Y_true: El valor original de la salida en X_current (o su predicción si ya fue eliminado antes)
+        # 1. Y_true: The original output value at X_current (or its lossless prediction if already removed)
         y_true = base_dict.get(x_current)
         if y_true is None:
-             # Si el punto ya fue eliminado en Secc IV, usamos su predicción sin pérdida como Y_true
+             # If the point was already removed in Sec IV, use its lossless prediction as Y_true
              y_true = x_current * p_current + o_current 
         
-        # 2. Y_hat: La predicción si se utiliza el segmento extendido anterior (p_prev, o_prev)
+        # 2. Y_hat: The prediction if the extended previous segment (p_prev, o_prev) is used
         y_hat = x_current * p_prev + o_prev
         
         error = abs(y_true - y_hat)
         
-        # Criterio: Si el error es mayor que la tolerancia, el punto es Relevante y se mantiene.
+        # Criterion: If the error is greater than the tolerance, the point is Relevant and is kept.
         if error > tolerance:
             final_compressed.append(compressed_list[i])
 
-    # Reconstruimos el diccionario con la compresión con pérdida.
+    # Reconstruct the dictionary with lossy compression.
     lossy_dict = {x: (p, o) for x, p, o in final_compressed}
     
-    # Agregamos el extremo mayor
+    # Add the upper extreme point
     if compressed_dict:
         lossy_dict[list(compressed_dict.keys())[-1]] = (float('nan'), float('nan')) 
     
-    print(f"Neuronas No Relevantes Eliminadas. Segmentos finales: {len(lossy_dict) - 1}")
+    print(f"Non-Relevant Neurons Removed. Final segments: {len(lossy_dict) - 1}")
     return lossy_dict
 
 
-# --- FUNCIÓN DE PREDICCIÓN (Secciones III y VII - El Núcleo Operativo Limpio) ---
+# --- PREDICTION FUNCTION (Sections III and VII - The Clean Operational Core) ---
 
 def predict(x: float, dictionary: dict) -> tuple:
     """
-    Realiza una predicción Y para un valor X dado utilizando el modelo MRLS comprimido.
-    Aplica generalización (extrapolación) si X está fuera del rango de entrenamiento.
+    Performs a prediction Y for a given X value using the compressed SLRM model.
+    Applies generalization (extrapolation) if X is outside the training range.
     
     Args:
-        x: El valor de entrada para el cual se requiere la predicción.
-        dictionary: El diccionario MRLS que contiene los segmentos lineales.
+        x: The input value for which the prediction is required.
+        dictionary: The SLRM dictionary containing the linear segments.
         
     Returns:
-        Una tupla (y_predicted, segment_info, description)
+        A tuple (y_predicted, segment_info, description)
     """
     
-    # 1. Preparar Claves y Límites
+    # 1. Prepare Keys and Limits
     keys = sorted(dictionary.keys())
     if len(keys) < 2:
-        return None, "Error: El diccionario MRLS debe tener al menos dos puntos.", "ERROR"
+        return None, "Error: The SLRM dictionary must have at least two points.", "ERROR"
 
-    min_x = keys[0]             # El límite inferior de entrenamiento
-    final_x_limit = keys[-1]    # El límite superior absoluto de entrenamiento
+    min_x = keys[0]             # The lower training limit
+    final_x_limit = keys[-1]    # The absolute upper training limit
     
-    # El penúltimo punto es la clave del último segmento válido (P y O definidos)
+    # The second to last point is the key of the last valid segment (P and O defined)
     max_segment_key = keys[-2] 
 
     target_x = None
-    description = "INTERPOLACIÓN (Dentro del Rango)"
+    description = "INTERPOLATION (Within Range)"
 
-    # 2. Manejo de Generalización (Extrapolación)
+    # 2. Handling Generalization (Extrapolation)
     
-    # Extremo Menor: Si X es menor que el límite inferior, se usa el primer segmento.
+    # Lower Extreme: If X is less than the lower limit, the first segment is used.
     if x < min_x:
         target_x = min_x
-        description = "EXTRAPOLACIÓN Menor (< X_min)"
+        description = "LOWER EXTRAPOLATION (< X_min)"
     
-    # Búsqueda del segmento activo (para interpolación o extrapolación mayor)
+    # Search for the active segment (for interpolation or upper extrapolation)
     else:
-        # Encontrar la clave X_n más próxima y menor o igual a X
-        # Se busca la clave de atrás hacia adelante para encontrar el segmento activo (Xn <= X)
+        # Find the closest key X_n less than or equal to X
+        # Search backwards to find the active segment (Xn <= X)
         for key in reversed(keys):
-            # Solo buscamos claves que marcan el inicio de un segmento válido (no NaN)
+            # Only search keys that mark the start of a valid segment (not NaN)
             if x >= key and not math.isnan(dictionary.get(key, (None, None))[0]): 
                 target_x = key
                 break
         
-        # Extremo Mayor: Si el segmento encontrado es el último válido (max_segment_key) 
-        # y X excede el límite final (final_x_limit), se mantiene ese segmento.
+        # Upper Extreme: If the segment found is the last valid one (max_segment_key) 
+        # and X exceeds the final limit (final_x_limit), that segment is maintained.
         if target_x == max_segment_key and x >= final_x_limit:
-            description = "EXTRAPOLACIÓN Mayor (> X_max)"
-        # Si x es exactamente el punto final (keys[-1]), target_x será max_segment_key 
-        # (ya que keys[-1] tiene NaN) y se trata como la última interpolación válida.
+            description = "UPPER EXTRAPOLATION (> X_max)"
+        # If x is exactly the endpoint (keys[-1]), target_x will be max_segment_key 
+        # (since keys[-1] has NaN) and is treated as the last valid interpolation.
 
-    # 3. Cálculo de la Predicción
+    # 3. Prediction Calculation
     
     if target_x is None:
-        # Esto ocurre si el segmento más bajo es inválido o si hay un error lógico
-        return None, "Error: No se pudo encontrar un segmento activo para X.", "ERROR"
+        # This occurs if the lowest segment is invalid or if there is a logical error
+        return None, "Error: Could not find an active segment for X.", "ERROR"
         
-    # Obtener los parámetros del segmento activo
+    # Get the active segment parameters
     P, O = dictionary[target_x]
     
-    # Manejar el caso muy improbable de que target_x sea el punto final (NaN) pero no se haya detectado arriba.
+    # Handle the very unlikely case where target_x is the endpoint (NaN) but was not detected above.
     if math.isnan(P) or math.isnan(O):
         P, O = dictionary[max_segment_key]
         target_x = max_segment_key
 
-    # Calcular Y
+    # Calculate Y
     y_predicted = x * P + O
     
-    # 4. Información del Segmento
-    segment_info = f"Segmento: [X={target_x:.2f}] con P={P:.2f} y O={O:+.2f}"
+    # 4. Segment Information
+    segment_info = f"Segment: [X={target_x:.2f}] with P={P:.2f} and O={O:+.2f}"
     
     return y_predicted, segment_info, description
 
 
-# --- EJECUCIÓN DEL MODELO DE JUGUETE ---
-# Este bloque demuestra la generación del diccionario final y las pruebas de predicción.
+# --- TOY MODEL EXECUTION ---
+# This block demonstrates the generation of the final dictionary and prediction tests.
 
 if __name__ == "__main__":
     
-    print("--- Demostración COMPLETA del Modelo de Regresión Lineal Segmentada (MRLS) ---")
+    print("--- COMPLETE Segmented Linear Regression Model (SLRM) Demonstration ---")
     
-    # I. DataFrame Purificado (Datos de entrenamiento)
-    # Los datos se ordenarán internamente: [-8, -4], [-6, -6], [-5, -6.01], [-4, -6], [-2, -4], [0, 0], [2, 4], [3, 7], [4, 10], [6, 18]
+    # I. Purified DataFrame (Training Data)
+    # Data will be sorted internally: [-8, -4], [-6, -6], [-5, -6.01], [-4, -6], [-2, -4], [0, 0], [2, 4], [3, 7], [4, 10], [6, 18]
     dataframe = [
         [-6.00, -6.00], [2.00, 4.00], [-8.00, -4.00], [0.00, 0.00],
         [4.00, 10.0], [-4.00, -6.00], [6.00, 18.0], [-5.00, -6.01],
         [3.00, 7.00], [-2.00, -4.00]
     ]
 
-    # 1. Creación del diccionario base
+    # 1. Base dictionary creation
     base_dict = create_base_dictionary(dataframe)
 
-    # 2. Optimización (Pesos/Sesgos)
+    # 2. Optimization (Weights/Biases)
     optimized_dict = optimize_dictionary(base_dict)
 
-    # 3. Compresión sin Pérdida (Invarianza Geométrica)
+    # 3. Lossless Compression (Geometric Invariance)
     compressed_lossless_dict = compress_lossless(optimized_dict)
 
-    # 4. Compresión con Pérdida (Criterio Humano)
+    # 4. Lossy Compression (Human Criterion)
     COMPRESSION_TOLERANCE = 0.03
     compressed_lossy_dict = compress_lossy(compressed_lossless_dict, base_dict, tolerance=COMPRESSION_TOLERANCE)
     
-    # Mostrar el resultado final de la compresión (Diccionario que usa la web)
-    # Se espera que se eliminen los puntos: -5.00, -4.00, 0.00, 3.00
-    print_mrls_dictionary(compressed_lossy_dict, "4. Diccionario FINAL Comprimido (MRLS)")
+    # Display the final compression result (Dictionary used by the web)
+    # Expected points to be removed: -5.00, -4.00, 0.00, 3.00
+    print_slrm_dictionary(compressed_lossy_dict, "4. FINAL Compressed Dictionary (SLRM)")
 
 
-    print("\n--- 5. PRUEBAS DE PREDICCIÓN CON EL MODELO FINAL ---")
+    print("\n--- 5. PREDICTION TESTS WITH THE FINAL MODEL ---")
     
     test_values = [
-        -10.0, # Extrapolación Menor
-        -7.0,  # Interpolación Segmento -8.0
-        -5.0,  # Interpolación Segmento -6.0 (punto eliminado en la pérdida)
-        -3.0,  # Prueba de seguridad
-        0.0,   # Interpolación Segmento -2.0 (punto eliminado en la pérdida)
-        3.0,   # Interpolación Segmento +2.0 (punto eliminado en la pérdida)
-        5.0,   # Interpolación Segmento +4.0
-        6.0,   # Límite Máximo
-        8.0    # Extrapolación Mayor
+        -10.0, # Lower Extrapolation
+        -7.0,  # Interpolation Segment -8.0
+        -5.0,  # Interpolation Segment -6.0 (point removed in lossy compression)
+        -3.0,  # Safety Test
+        0.0,   # Interpolation Segment -2.0 (point removed in lossy compression)
+        3.0,   # Interpolation Segment +2.0 (point removed in lossy compression)
+        5.0,   # Interpolation Segment +4.0
+        6.0,   # Maximum Limit
+        8.0    # Upper Extrapolation
     ]
 
     for x_val in test_values:
         y, info, desc = predict(x_val, compressed_lossy_dict)
         
         if y is not None:
-            # Imprimimos el resultado de la predicción
+            # Print the prediction result
             print(f"X = {x_val:6.2f} | Y pred = {y:7.3f} | {desc:25} | {info}")
         else:
-            print(f"X = {x_val:6.2f} | Error al predecir: {info}")
+            print(f"X = {x_val:6.2f} | Prediction error: {info}")
             
     print("\n-------------------------------------------")
