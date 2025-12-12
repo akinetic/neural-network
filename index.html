@@ -1,28 +1,29 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MRLS: Modelo de Regresión Lineal Segmentada</title>
+    <title>SLRM: Segmented Linear Regression Model</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- D3.js para la visualización gráfica -->
+    <!-- D3.js for graphic visualization -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #eef2ff; /* Azul muy claro */
+            background-color: #eef2ff; /* Very light blue */
         }
         .result-box {
             background-color: #f0f9ff;
             border-left: 4px solid #0ea5e9;
         }
-        /* Estilos para el gráfico SVG */
+        /* Styles for the SVG chart */
         .axis path, .axis line {
             fill: none;
-            stroke: #d1d5db; /* Gris claro */
+            stroke: #d1d5db; /* Light gray */
             shape-rendering: crispEdges;
         }
         .segment-line {
@@ -31,7 +32,7 @@
             stroke-linecap: round;
         }
         #chart-container {
-            min-height: 450px; /* Aumentado para mejor visibilidad */
+            min-height: 450px; /* Increased for better visibility */
             background-color: #ffffff; 
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
@@ -42,82 +43,82 @@
 
     <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-xl p-6 md:p-10">
         <header class="mb-8 border-b pb-4">
-            <h1 class="text-3xl font-extrabold text-indigo-700">MRLS: Regresión Lineal Segmentada</h1>
-            <p class="text-gray-500 mt-2">Demostración del algoritmo de compresión neuronal (`neuron.py`).</p>
+            <h1 class="text-3xl font-extrabold text-indigo-700">SLRM: Segmented Linear Regression Model</h1>
+            <p class="text-gray-500 mt-2">Demonstration of the neural compression algorithm (`neuron.py`).</p>
         </header>
 
-        <!-- Contenedor del Gráfico -->
+        <!-- Chart Container -->
         <section class="mb-10 p-4 border border-indigo-200 rounded-lg bg-indigo-50">
-            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">Gráfico del Modelo Comprimido</h2>
+            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">Compressed Model Chart</h2>
             <div id="chart-container" class="w-full">
-                <!-- Aquí se dibujará el gráfico D3.js -->
+                <!-- D3.js chart will be drawn here -->
             </div>
             <p class="text-sm text-gray-500 mt-2 text-center">
-                <span class="text-red-500 font-bold">● Datos Originales</span> | 
-                <span class="text-emerald-600 font-bold">● Neuronas Clave</span> | 
-                <span class="text-indigo-600 font-bold">― Línea MRLS</span> | 
-                <span class="text-yellow-600 font-bold">● Predicción</span>
+                <span class="text-red-500 font-bold">● Original Data</span> | 
+                <span class="text-emerald-600 font-bold">● Key Neurons</span> | 
+                <span class="text-indigo-600 font-bold">― SLRM Line</span> | 
+                <span class="text-yellow-600 font-bold">● Prediction</span>
             </p>
         </section>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Sección de Predicción -->
+            <!-- Prediction Section -->
             <section class="mb-6">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Predicción Instantánea</h2>
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Instant Prediction</h2>
                 <p class="text-gray-600 mb-4">
-                    Ingresa un valor de X (positivo o **negativo**) para obtener una predicción instantánea.
+                    Enter an X value (positive or **negative**) to get an instant prediction.
                 </p>
 
                 <div class="flex flex-col gap-4 mb-6">
-                    <input type="text" id="inputX" placeholder="Ingresa un valor de X (e.g., -10, 0, 8)"
+                    <input type="text" id="inputX" placeholder="Enter an X value (e.g., -10, 0, 8)"
                            class="p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition duration-150">
                     <button onclick="getPrediction()"
                             class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-md hover:shadow-lg">
-                        Calcular Predicción
+                        Calculate Prediction
                     </button>
                 </div>
 
-                <!-- Resultado de la Predicción -->
+                <!-- Prediction Result -->
                 <div id="predictionResult" class="result-box p-4 rounded-lg hidden">
-                    <p class="font-medium text-gray-700">Resultado:</p>
+                    <p class="font-medium text-gray-700">Result:</p>
                     <p id="resultText" class="text-xl font-extrabold text-indigo-800 mt-1"></p>
                     <p id="resultSegment" class="text-sm text-gray-500 mt-2"></p>
                 </div>
             </section>
 
-            <!-- Sección de Estructura -->
+            <!-- Structure Section -->
             <section>
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">2. Estructura del MRLS Comprimido</h2>
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">2. Compressed SLRM Structure</h2>
                 <p class="text-gray-600 mb-4">
-                    Diccionario final (`compressed_lossy_dict`) usado para las predicciones.
+                    Final dictionary (`compressed_lossy_dict`) used for predictions.
                 </p>
 
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <p class="font-mono text-xs text-gray-600 mb-2">
-                        // Clave: X_inicio | Valor: [Pendiente (Peso), Ordenada (Sesgo)]
+                        // Key: X_start | Value: [Slope (Weight), Intercept (Bias)]
                     </p>
                     <pre id="displayDictionary" class="text-sm overflow-x-auto text-gray-700"></pre>
                 </div>
             </section>
         </div>
         
-        <!-- Script principal de JavaScript -->
+        <!-- Main JavaScript Script -->
         <script>
-            // --- DATOS Y MODELO (Cerebro JS) ---
+            // --- DATA AND MODEL (JS Core) ---
 
-            // Resultados finales precisos de la ejecución de neuron.py (Compresión con Pérdida)
+            // Final, precise results from the neuron.py execution (Lossy Compression)
             const MRLS_DICT = {
-                // X: [Pendiente (P), Ordenada (O)]
-                "-8": [-1.00, -12.00], // Segmento [-8.0, -6.0]
-                "-6": [0.00, -6.00],   // Segmento [-6.0, -4.0] (Elimina -5.0)
-                "-4": [1.00, -2.00],   // Segmento [-4.0, -2.0] 
-                "-2": [2.00, 0.00],    // Segmento [-2.0, +2.0] (Extiende y elimina X=0.0)
-                "2": [3.00, -2.00],    // Segmento [+2.0, +4.0] (Elimina 3.0)
-                "4": [4.00, -6.00],    // Segmento [+4.0, +6.0]
-                "6": [NaN, NaN]        // Límite final del rango de entrenamiento (X=+6.0)
+                // X: [Slope (P), Intercept (O)]
+                "-8": [-1.00, -12.00], // Segment [-8.0, -6.0]
+                "-6": [0.00, -6.00],   // Segment [-6.0, -4.0] (Removes -5.0)
+                "-4": [1.00, -2.00],   // Segment [-4.0, -2.0] 
+                "-2": [2.00, 0.00],    // Segment [-2.0, +2.0] (Extends and removes X=0.0)
+                "2": [3.00, -2.00],    // Segment [+2.0, +4.0] (Removes 3.0)
+                "4": [4.00, -6.00],    // Segment [+4.0, +6.0]
+                "6": [NaN, NaN]        // Final limit of the training range (X=+6.0)
             };
             
-            // Puntos originales para la gráfica
+            // Original data points for the chart
             const ORIGINAL_DATA = [
                 {x: -8.0, y: -4.0}, {x: -6.0, y: -6.0}, {x: -5.0, y: -6.01}, {x: -4.0, y: -6.0},
                 {x: -2.0, y: -4.0}, {x: 0.0, y: 0.0}, {x: 2.0, y: 4.0}, {x: 3.0, y: 7.0},
@@ -126,28 +127,28 @@
 
 
             /**
-             * Función para formatear el diccionario en orden numérico ascendente.
-             * Aplica el signo '+' a las claves positivas.
+             * Function to format the dictionary in ascending numerical order.
+             * Applies the '+' sign to positive keys.
              */
             function formatDictionary(dict) {
-                // 1. Obtener claves como números y ordenarlas
+                // 1. Get keys as numbers and sort them
                 const keys = Object.keys(dict).map(Number).sort((a, b) => a - b);
                 
                 let formattedText = "{\n";
                 
-                // 2. Iterar sobre las claves ordenadas para construir el texto
+                // 2. Iterate over the sorted keys to build the text
                 keys.forEach(key => {
-                    // Excluir el punto límite final 6:NaN para la visualización del diccionario
+                    // Exclude the final limit point 6:NaN for dictionary visualization
                     if (key === 6 && isNaN(dict[key.toString()][0])) {
                         return; 
                     }
                     
                     const [P, O] = dict[key.toString()];
                     
-                    // Formatea la clave (X_inicio): añade '+' si es positivo
+                    // Format the key (X_start): adds '+' if positive
                     const keyStr = key >= 0 ? `+${key}` : key.toString();
 
-                    // Formatea los valores, reemplazando NaN con 'null' y usando 2 decimales
+                    // Format values, replacing NaN with 'null' and using 2 decimals
                     const pStr = isNaN(P) ? "null" : P.toFixed(2);
                     const oStr = isNaN(O) ? "null" : O.toFixed(2);
                     
@@ -158,60 +159,60 @@
                 return formattedText;
             }
 
-            // Muestra el diccionario en formato legible y ordenado
+            // Displays the dictionary in readable, sorted format
             document.getElementById('displayDictionary').textContent = formatDictionary(MRLS_DICT);
 
 
             /**
-             * Implementación en JS de la función predict(x, dictionary)
-             * Utiliza el punto límite X=6.0 internamente.
+             * JS implementation of the predict(x, dictionary) function
+             * Internally uses the limit point X=6.0.
              */
             function predictMRLS(x) {
-                // Obtener claves ordenadas de los puntos de inicio de segmento
+                // Get sorted keys of segment start points
                 const keys = Object.keys(MRLS_DICT).map(Number).sort((a, b) => a - b);
                 
                 const minX = keys[0]; // -8.0
-                // La clave del último segmento válido (4.0)
+                // The key of the last valid segment (4.0)
                 const maxXSegmentKey = keys[keys.length - 2]; 
-                // El límite máximo de entrenamiento (6.0)
+                // The maximum training limit (6.0)
                 const finalXLimit = keys[keys.length - 1];
                 
                 let targetX = null;
-                let description = "Interpolación (dentro del rango)";
+                let description = "Interpolation (within range)";
                 
-                // --- Generalización: Extremo Menor (X < minX) ---
+                // --- Generalization: Lower Extreme (X < minX) ---
                 if (x < minX) {
                     targetX = minX;
-                    description = `EXTRAPOLACIÓN Menor`;
+                    description = `LOWER EXTRAPOLATION`;
                 } else {
-                    // 1. Búsqueda del segmento activo (Xn más próximo menor o igual)
+                    // 1. Search for the active segment (closest Xn less than or equal)
                     for (let i = keys.length - 1; i >= 0; i--) {
-                        // Buscar el punto clave que es menor o igual a X, y que tiene parámetros válidos
+                        // Search for the key point that is less than or equal to X, and has valid parameters
                         if (x >= keys[i] && !isNaN(MRLS_DICT[keys[i].toString()][0])) {
                             targetX = keys[i];
                             break;
                         }
                     }
 
-                    // --- Generalización: Extremo Mayor (X > punto final) ---
-                    // Si el segmento encontrado es el último válido (4.0), y X supera el límite final (6.0)
+                    // --- Generalization: Upper Extreme (X > endpoint) ---
+                    // If the found segment is the last valid one (4.0), and X exceeds the final limit (6.0)
                     if (targetX === maxXSegmentKey && x > finalXLimit) {
-                        description = `EXTRAPOLACIÓN Mayor`;
+                        description = `UPPER EXTRAPOLATION`;
                     }
                 }
                 
                 if (targetX !== null) {
                     const [P, O] = MRLS_DICT[targetX.toString()];
                     
-                    // Si por alguna razón el punto elegido es el límite (6.0), forzamos al segmento anterior (4.0)
+                    // If for some reason the chosen point is the limit (6.0), force the previous segment (4.0)
                     if (isNaN(P) || isNaN(O)) {
                         targetX = maxXSegmentKey; 
                         const [P_new, O_new] = MRLS_DICT[targetX.toString()];
                         const yPredicted = x * P_new + O_new;
                         return {
                             prediction: yPredicted,
-                            segment: `Segmento: [X=${targetX.toFixed(2)}] con P=${P_new.toFixed(2)} y O=${O_new.toFixed(2)}`,
-                            description: `EXTRAPOLACIÓN Mayor (Forzado)`
+                            segment: `Segment: [X=${targetX.toFixed(2)}] with P=${P_new.toFixed(2)} and O=${O_new.toFixed(2)}`,
+                            description: `UPPER EXTRAPOLATION (Forced)`
                         };
                     }
 
@@ -219,7 +220,7 @@
 
                     return {
                         prediction: yPredicted,
-                        segment: `Segmento: [X=${targetX.toFixed(2)}] con P=${P.toFixed(2)} y O=${O.toFixed(2)}`,
+                        segment: `Segment: [X=${targetX.toFixed(2)}] with P=${P.toFixed(2)} and O=${O.toFixed(2)}`,
                         description: description
                     };
                 }
@@ -227,12 +228,12 @@
                 return {
                     prediction: null,
                     segment: "",
-                    description: "Error: No se encontró segmento."
+                    description: "Error: Segment not found."
                 };
             }
 
             /**
-             * Función para manejar la entrada del usuario y mostrar la predicción.
+             * Function to handle user input and display the prediction.
              */
             function getPrediction() {
                 const inputElement = document.getElementById('inputX');
@@ -240,11 +241,11 @@
                 const resultText = document.getElementById('resultText');
                 const resultSegment = document.getElementById('resultSegment');
 
-                // Usar parseFloat para manejar el input de tipo texto
+                // Use parseFloat to handle text input
                 const x = parseFloat(inputElement.value);
 
                 if (isNaN(x)) {
-                    resultText.textContent = "¡Error! Por favor, ingresa un número válido.";
+                    resultText.textContent = "Error! Please enter a valid number.";
                     resultSegment.textContent = "";
                     resultBox.classList.remove('hidden');
                     d3.select('#prediction-point').remove();
@@ -257,7 +258,7 @@
                     resultText.innerHTML = `Y = ${result.prediction.toFixed(3)}`;
                     resultSegment.textContent = `${result.description}. ${result.segment}`;
                     
-                    // Llama a la función de gráfico para dibujar el punto de predicción
+                    // Calls the chart function to draw the prediction point
                     drawPredictionPoint(x, result.prediction);
 
                 } else {
@@ -269,7 +270,7 @@
                 resultBox.classList.remove('hidden');
             }
 
-            // --- VISUALIZACIÓN D3.js ---
+            // --- D3.js VISUALIZATION ---
             
             let svg, xScale, yScale;
 
@@ -279,13 +280,13 @@
                 
                 const margin = {top: 20, right: 30, bottom: 40, left: 50};
                 const width = containerWidth - margin.left - margin.right;
-                // Altura fija del contenedor CSS (450) menos los márgenes
+                // Fixed CSS container height (450) minus margins
                 const height = 450 - margin.top - margin.bottom; 
 
-                // 1. Limpia el contenedor
+                // 1. Clear the container
                 d3.select(container).select("svg").remove();
 
-                // 2. Crea el SVG
+                // 2. Create the SVG
                 svg = d3.select(container)
                     .append("svg")
                     .attr("width", width + margin.left + margin.right)
@@ -293,7 +294,7 @@
                     .append("g")
                     .attr("transform", `translate(${margin.left},${margin.top})`);
                 
-                // 3. Obtiene el rango de datos
+                // 3. Get the data range
                 const allX = ORIGINAL_DATA.map(d => d.x);
                 const allY = ORIGINAL_DATA.map(d => d.y);
 
@@ -302,13 +303,13 @@
                 const minY = d3.min(allY);
                 const maxY = d3.max(allY);
 
-                // Rango extendido para mostrar la extrapolación
+                // Extended range to show extrapolation
                 const xRange = [minX - 3, maxX + 3]; 
                 
-                // CORRECCIÓN CLAVE: Ampliamos el rango Y para que las extrapolaciones sean visibles
+                // KEY FIX: Extend Y range so extrapolations are visible
                 const yRange = [minY - 5, maxY + 20]; 
 
-                // 4. Define las Escalas
+                // 4. Define Scales
                 xScale = d3.scaleLinear()
                     .domain(xRange) 
                     .range([0, width]);
@@ -317,35 +318,35 @@
                     .domain(yRange)
                     .range([height, 0]);
 
-                // 5. Dibuja los Ejes
-                // Eje X (horizontal) - movido al valor y=0
+                // 5. Draw Axes
+                // X-axis (horizontal) - moved to y=0 value
                 svg.append("g")
                     .attr("transform", `translate(0,${yScale(0)})`)
                     .call(d3.axisBottom(xScale).tickSizeOuter(0))
                     .attr("class", "axis");
 
-                // Eje Y (vertical) - movido al valor x=0
+                // Y-axis (vertical) - moved to x=0 value
                 svg.append("g")
                     .attr("transform", `translate(${xScale(0)},0)`)
                     .call(d3.axisLeft(yScale).tickSizeOuter(0))
                     .attr("class", "axis");
                 
-                // 6. Configura colores
-                const P_purple = "#8b5cf6"; // Púrpura para extrapolación
-                const P_indigo = "#4f46e5"; // Indigo para interpolación
+                // 6. Configure colors
+                const P_purple = "#8b5cf6"; // Purple for extrapolation
+                const P_indigo = "#4f46e5"; // Indigo for interpolation
 
                 const mrlsKeys = Object.keys(MRLS_DICT).map(Number).sort((a, b) => a - b);
                 
-                // 7. Dibuja la Extrapolación (Menor y Mayor)
+                // 7. Draw Extrapolation (Lower and Upper)
                 
-                // --- Extrapolación Menor (izquierda) ---
-                const minXSegment = MRLS_DICT[mrlsKeys[0].toString()]; // Segmento [-8.0]
+                // --- Lower Extrapolation (left) ---
+                const minXSegment = MRLS_DICT[mrlsKeys[0].toString()]; // Segment [-8.0]
                 if (minXSegment && !isNaN(minXSegment[0])) {
                     const P = minXSegment[0];
                     const O = minXSegment[1];
-                    const xStart = mrlsKeys[0]; // X=-8.0 (punto de inicio del segmento)
+                    const xStart = mrlsKeys[0]; // X=-8.0 (segment start point)
                     const yStart = xStart * P + O;
-                    const xEnd = xRange[0]; // X=-11.0 (límite del gráfico)
+                    const xEnd = xRange[0]; // X=-11.0 (chart limit)
                     const yEnd = xEnd * P + O;
 
                     svg.append("line")
@@ -359,22 +360,22 @@
                         .attr("opacity", 0.8);
                 }
 
-                // --- Extrapolación Mayor (derecha) ---
-                const maxXSegmentIndex = mrlsKeys.length - 2; // Índice de la clave del último segmento válido (4.0)
-                // El punto de inicio de la extrapolación debe ser el final del último segmento válido (X=6.0)
+                // --- Upper Extrapolation (right) ---
+                const maxXSegmentIndex = mrlsKeys.length - 2; // Index of the key for the last valid segment (4.0)
+                // The extrapolation start point must be the end of the last valid segment (X=6.0)
                 const xExtrapolStart = mrlsKeys[mrlsKeys.length - 1]; // X=6.0
-                const maxXSegment = MRLS_DICT[mrlsKeys[maxXSegmentIndex].toString()]; // Segmento [4.0]
+                const maxXSegment = MRLS_DICT[mrlsKeys[maxXSegmentIndex].toString()]; // Segment [4.0]
                 
                 if (maxXSegment && !isNaN(maxXSegment[0])) {
-                    const P = maxXSegment[0]; // Pendiente del segmento [4.0, 6.0]
-                    const O = maxXSegment[1]; // Ordenada del segmento [4.0, 6.0]
+                    const P = maxXSegment[0]; // Slope of segment [4.0, 6.0]
+                    const O = maxXSegment[1]; // Intercept of segment [4.0, 6.0]
                     
-                    // Calculamos Y en X=6.0 (punto de inicio de la extrapolación)
+                    // Calculate Y at X=6.0 (extrapolation start point)
                     const yStart = xExtrapolStart * P + O; 
-                    const xEnd = xRange[1]; // X=9.0 (límite del gráfico)
+                    const xEnd = xRange[1]; // X=9.0 (chart limit)
                     const yEnd = xEnd * P + O;
 
-                    // Dibujar línea desde X=6.0 (final del segmento) hasta X=9.0 (extremo del gráfico)
+                    // Draw line from X=6.0 (end of segment) to X=9.0 (chart extreme)
                     svg.append("line")
                         .attr("x1", xScale(xExtrapolStart)) 
                         .attr("y1", yScale(yStart))
@@ -387,7 +388,7 @@
                 }
 
 
-                // 8. Dibuja los Segmentos (Interpolación - línea sólida)
+                // 8. Draw Segments (Interpolation - solid line)
                 for (let i = 0; i < mrlsKeys.length - 1; i++) {
                     const xStart = mrlsKeys[i];
                     const xEnd = mrlsKeys[i+1];
@@ -409,7 +410,7 @@
                         .attr("stroke", P_indigo); 
                 }
 
-                // 9. Dibuja los Puntos Originales (Datos de entrenamiento)
+                // 9. Draw Original Points (Training Data)
                 svg.selectAll(".original-point")
                     .data(ORIGINAL_DATA)
                     .enter()
@@ -421,8 +422,8 @@
                     .attr("fill", "#ef4444") 
                     .attr("opacity", 0.8);
 
-                // 10. Dibuja las Neuronas Comprimidas (puntos clave del MRLS)
-                // Usamos solo las claves que representan inicios de segmento activos (excluyendo el límite final 6:NaN)
+                // 10. Draw Compressed Neurons (SLRM key points)
+                // Use only the keys that represent active segment starts (excluding the final limit 6:NaN)
                 const compressedPoints = mrlsKeys
                     .filter(key => key !== 6) 
                     .map(x => ({x: x, y: predictMRLS(x).prediction}))
@@ -442,13 +443,13 @@
             }
 
             /**
-             * Dibuja un punto de predicción dinámico.
+             * Draws a dynamic prediction point.
              */
             function drawPredictionPoint(x, y) {
-                // Elimina el punto anterior si existe
+                // Removes the previous point if it exists
                 d3.select('#prediction-point').remove();
                 
-                // Dibuja el nuevo punto
+                // Draws the new point
                 svg.append("circle")
                     .attr("id", "prediction-point")
                     .attr("cx", xScale(x))
@@ -459,7 +460,7 @@
                     .attr("stroke-width", 2);
             }
 
-            // Inicialización y Responsividad:
+            // Initialization and Responsiveness:
             setupChart();
             window.addEventListener('resize', setupChart); 
         </script>
