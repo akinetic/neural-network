@@ -1,6 +1,6 @@
 # slrm-logos.py
 # Author: Logos
-# Version: V2.0
+# Version: V2.1 (Refactored Prediction and Logic)
 #
 # Segmented Linear Regression Model (SLRM) Implementation.
 # Core Logic: Deterministic Sequential Simplification Algorithm.
@@ -57,7 +57,9 @@ def print_mrls_dictionary(dictionary: dict, title: str):
         print(f"  {key_str}: [ {p_str}, {o_str} ]")
         
     print("}")
-    print(f"Total Segments: {len(sorted_keys) - 1}")
+    # The dictionary always has one extra key (the NaN marker)
+    num_segments = len(sorted_keys) - 1
+    print(f"Total Segments: {num_segments if num_segments >= 0 else 0}")
     print("-----------------------------------")
 
 
@@ -84,8 +86,9 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
         x_base, y_base = sorted_data[base_index]
         segment_end_index = base_index + 1
         
-        # 'last_valid_index' tracks the furthest point that successfully defines the segment
-        last_valid_index = base_index 
+        # 'last_valid_index' tracks the furthest point that successfully defined the segment.
+        # It is initialized to the point that must form the minimal segment (base_index + 1).
+        last_valid_index = base_index + 1
 
         while segment_end_index < N:
             x_candidate, y_candidate = sorted_data[segment_end_index]
@@ -136,9 +139,9 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
         
         # 4. Register the final segment (from base_index to last_valid_index)
         
-        # If the index did not advance (N=2 case, or immediate failure), last_valid_index must be at least base_index + 1
-        if last_valid_index == base_index:
-             last_valid_index = base_index + 1
+        # NOTE: last_valid_index is guaranteed to be >= base_index + 1 because we start the segment
+        # search at base_index + 1 and only break if the first point fails (ZeroDivisionError), 
+        # in which case last_valid_index remains base_index + 1 (the minimum segment).
 
         x_end, y_end = sorted_data[last_valid_index]
         P_final, O_final = calculate_segment_params(x_base, y_base, x_end, y_end)
@@ -206,38 +209,47 @@ def train_slrm(data: list, epsilon: float) -> dict:
     
     # Step 3: Run Lossy Compression (Final Model Generation)
     final_model = compress_lossy(sorted_data, epsilon)
+    
+    # Display the final, most compressed model
+    print_mrls_dictionary(final_model, "4. FINAL SLRM Dictionary (Lossy Compression)")
 
     return final_model
 
 def predict_slrm(x_input: float, slrm_dict: dict) -> float:
     """
     Performs a prediction using the Final SLRM Dictionary (The Master Equation).
+    Uses np.searchsorted for efficient segment lookup.
     """
     if not slrm_dict:
         return np.nan
-
-    keys = sorted(list(slrm_dict.keys()))
+        
+    # Convert keys to a NumPy array for fast searchsorted lookup
+    keys = np.array(list(slrm_dict.keys()))
     
-    # Search for the active segment (the largest X_start that is <= x_input)
-    active_key = None
-    for key in reversed(keys):
-        # Use TOLERANCE for floating-point comparison
-        if x_input >= key - TOLERANCE: 
-            active_key = key
-            break
-            
-    # Handle Lower Extrapolation: If x_input is below the first X_start, use the first segment.
-    if active_key is None:
-        active_key = keys[0]
-
+    # np.searchsorted finds the index where x_input should be inserted to maintain order.
+    # Using 'right' means if x_input equals a key, the index *after* that key is returned.
+    # We want the index of the segment start (the largest key <= x_input), so we subtract 1.
+    
+    # E.g., keys = [-8, -6, 4]
+    # x_input = -7.0 -> searchsorted returns index 1 (where -6 is). Subtract 1 -> index 0 (-8.0 segment)
+    # x_input = 4.0 -> searchsorted returns index 3 (after 4). Subtract 1 -> index 2 (4.0 segment)
+    
+    idx = np.searchsorted(keys, x_input, side='right') - 1
+    
+    # 1. Handle Lower Extrapolation (x_input < keys[0]):
+    # If x_input is less than the first key, idx will be -1. We default to the first segment (index 0).
+    idx = max(0, idx) 
+    
+    active_key = keys[idx]
     P, O = slrm_dict.get(active_key, [np.nan, np.nan])
     
-    # If the active key is the final (NaN) point, use the segment starting at the second-to-last key
-    if math.isnan(P) and len(keys) > 1:
-        active_key = keys[-2]
+    # 2. Handle Upper Extrapolation (if the selected segment is the NaN marker):
+    # If the active segment is the final NaN marker, we must use the parameters of the preceding segment.
+    if math.isnan(P) and idx > 0:
+        active_key = keys[idx - 1] # Use the second-to-last segment
         P, O = slrm_dict[active_key]
     elif math.isnan(P):
-        # Handle case of a single-point model (no segments possible)
+        # Handle case of a single-point model (no segments possible, only NaN marker)
         return np.nan 
 
     # The Master Equation: Y = X * P + O
@@ -255,14 +267,11 @@ if __name__ == '__main__':
         [-4.00, -6.00], [6.00, 18.0], [-5.00, -6.01], [3.00, 7.00], [-2.00, -4.00]
     ]
 
-    print(f"--- SLRM (Logos V2.0) Training Demonstration ---")
+    print(f"--- SLRM (Logos V2.1) Training Demonstration ---")
     print(f"Input Data Points: {len(INPUT_SET)}")
 
-    # TRAINING
+    # TRAINING (This automatically prints steps 1, 2, 3, and 4)
     final_model = train_slrm(INPUT_SET, EPSILON)
-
-    # DISPLAY RESULTS
-    print_mrls_dictionary(final_model, "4. FINAL SLRM Dictionary (Lossy Compression)")
 
     # PREDICTION TEST
     print("\n--- 5. PREDICTION TESTS ---")
@@ -271,6 +280,7 @@ if __name__ == '__main__':
     x_min_data = min(x[0] for x in INPUT_SET)
     x_max_data = max(x[0] for x in INPUT_SET)
     
+    # Test points include lower extrapolation (-9.0, -7.0), interpolation (-5.5, 1.0, 5.0), and upper extrapolation (8.0).
     test_points = [-9.0, -7.0, -5.5, 1.0, 5.0, 8.0]
 
     for x_test in test_points:
@@ -280,4 +290,3 @@ if __name__ == '__main__':
         status = "EXTRAPOLATION" if is_extrapolation else "Interpolation"
         
         print(f"  X_in: {x_test:6.2f} | Y_pred: {y_pred:8.4f} | Type: {status}")
-        
