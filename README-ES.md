@@ -6,14 +6,14 @@ El núcleo de la solución es el algoritmo de compresión, que transforma un con
 
 ## Estructura del Proyecto
 
-* **`model.py`**: Contiene la implementación completa del proceso de entrenamiento (Creación, Optimización, Compresión) y la función de predicción (`predict`). Este código genera el diccionario MRLS final que se consume en la web.
+* **`mrls-logos.py`**: Contiene la implementación completa del proceso de entrenamiento (Creación, Optimización, Compresión) y la función de predicción (`predict`). Este código genera el diccionario MRLS final que se consume en la web.
 * **`index.html`**: Implementación de la visualización en D3.js y JavaScript Vanilla, que muestra el conjunto de datos, la curva de predicción del MRLS (la función lineal a trozos) y permite interactuar con la función de predicción en tiempo real.
 
 ---
 
 ## 🧠 Arquitectura del MRLS: El Proceso de Entrenamiento (Compresión)
 
-El entrenamiento del MRLS se logra a través de cuatro secciones principales, implementadas secuencialmente en `model.py`:
+El entrenamiento del MRLS se logra a través de cuatro secciones principales, implementadas secuencialmente en `mrls-logos.py`:
 
 ### 1. Creación del Diccionario Base (Sección I y II)
 
