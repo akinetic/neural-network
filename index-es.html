@@ -64,14 +64,14 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Sección de Predicción -->
             <section class="mb-6">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Predicción Instantánea</h2>
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Predicción con Botón</h2>
                 <p class="text-gray-600 mb-4">
-                    Ingresa un valor de X (positivo o **negativo**) para obtener una predicción instantánea.
+                    Ingresa un valor de X (positivo o **negativo**) y presiona el botón para calcular la predicción.
                 </p>
 
                 <div class="flex flex-col gap-4 mb-6">
-                    <!-- CORRECCIÓN: Se añadió oninput="getPrediction()" para la reactividad. -->
-                    <input type="text" id="inputX" oninput="getPrediction()" placeholder="Ingresa un valor de X (e.g., -10, 0, 8)"
+                    <!-- REMOVIDO: oninput. La predicción se realiza solo al hacer clic en el botón. -->
+                    <input type="text" id="inputX" placeholder="Ingresa un valor de X (e.g., -10, 0, 8)"
                            class="p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition duration-150">
                     <button onclick="getPrediction()"
                             class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-md hover:shadow-lg">
@@ -234,8 +234,7 @@
             }
 
             /**
-             * Función para manejar la entrada del usuario y mostrar la predicción.
-             * Es llamado por el evento 'oninput' para la reactividad.
+             * Función para manejar la entrada del usuario y mostrar la predicción (activada por el botón).
              */
             function getPrediction() {
                 const inputElement = document.getElementById('inputX');
@@ -247,8 +246,8 @@
                 const x = parseFloat(inputElement.value);
 
                 if (isNaN(x)) {
-                    // Si el input está vacío o no es un número, oculta los resultados de la predicción
-                    resultText.textContent = inputElement.value === '' ? 'Esperando valor...' : "¡Error! Por favor, ingresa un número válido.";
+                    // Si el input está vacío o no es un número, muestra un error.
+                    resultText.textContent = "¡Error! Por favor, ingresa un número válido.";
                     resultSegment.textContent = "";
                     resultBox.classList.remove('hidden');
                     // Remueve el punto de predicción si no hay un valor válido
@@ -445,8 +444,8 @@
                     .attr("stroke", "#065f46")
                     .attr("stroke-width", 1.5);
                 
-                // Intenta una predicción inicial o limpia si no hay input.
-                getPrediction();
+                // Inicialmente, no hay predicción visible.
+                // getPrediction(); // Desactivado para que el usuario use el botón.
             }
 
             /**
