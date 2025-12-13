@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# model.py: Implementación del Modelo de Regresión Lineal Segmentada (MRLS)
+# mrls-logos.py: Implementación del Modelo de Regresión Lineal Segmentada (MRLS)
 # con un algoritmo de compresión neuronal con pérdida (lossy compression).
 #
 # Este archivo contiene el flujo COMPLETO de simulación para generar el
