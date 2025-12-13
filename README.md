@@ -13,7 +13,7 @@ The core of the solution is the compression algorithm, which transforms an unord
 
 ## 🧠 SLRM Architecture: The Training Process (Compression)
 
-SLRM training is achieved through four main sections, implemented sequentially in `model.py`:
+SLRM training is achieved through four main sections, implemented sequentially in `slrm-logos.py`:
 
 ### 1. Base Dictionary Creation (Section I and II)
 
