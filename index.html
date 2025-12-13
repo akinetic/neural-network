@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <link rel="icon" href="favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Title in English -->
     <title>SLRM: Segmented Linear Regression Model</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -43,16 +44,20 @@
 
     <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-xl p-6 md:p-10">
         <header class="mb-8 border-b pb-4">
+            <!-- Title in English -->
             <h1 class="text-3xl font-extrabold text-indigo-700">SLRM: Segmented Linear Regression Model</h1>
-            <p class="text-gray-500 mt-2">Demonstration of the neural compression algorithm (`neuron.py`).</p>
+            <!-- Subtitle in English: Updated file name to slrm-logos.py -->
+            <p class="text-gray-500 mt-2">Demonstration of the neural compression algorithm (<span class="font-mono text-gray-700">slrm-logos.py</span>).</p>
         </header>
 
         <!-- Chart Container -->
         <section class="mb-10 p-4 border border-indigo-200 rounded-lg bg-indigo-50">
-            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">Compressed Model Chart</h2>
+            <!-- Heading in English -->
+            <h2 class="text-2xl font-semibold text-indigo-800 mb-4">Graph of the Compressed Model</h2>
             <div id="chart-container" class="w-full">
                 <!-- D3.js chart will be drawn here -->
             </div>
+            <!-- Legend in English -->
             <p class="text-sm text-gray-500 mt-2 text-center">
                 <span class="text-red-500 font-bold">● Original Data</span> | 
                 <span class="text-emerald-600 font-bold">● Key Neurons</span> | 
@@ -64,14 +69,18 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Prediction Section -->
             <section class="mb-6">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Instant Prediction</h2>
+                <!-- Heading in English -->
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Button Prediction</h2>
+                <!-- Description in English -->
                 <p class="text-gray-600 mb-4">
-                    Enter an X value (positive or **negative**) to get an instant prediction.
+                    Enter an X value (positive or <span class="font-bold">negative</span>) and press the button to calculate the prediction.
                 </p>
 
                 <div class="flex flex-col gap-4 mb-6">
+                    <!-- Placeholder in English -->
                     <input type="text" id="inputX" placeholder="Enter an X value (e.g., -10, 0, 8)"
                            class="p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition duration-150">
+                    <!-- Button text in English -->
                     <button onclick="getPrediction()"
                             class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-md hover:shadow-lg">
                         Calculate Prediction
@@ -80,6 +89,7 @@
 
                 <!-- Prediction Result -->
                 <div id="predictionResult" class="result-box p-4 rounded-lg hidden">
+                    <!-- Result label in English -->
                     <p class="font-medium text-gray-700">Result:</p>
                     <p id="resultText" class="text-xl font-extrabold text-indigo-800 mt-1"></p>
                     <p id="resultSegment" class="text-sm text-gray-500 mt-2"></p>
@@ -88,12 +98,15 @@
 
             <!-- Structure Section -->
             <section>
+                <!-- Heading in English -->
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">2. Compressed SLRM Structure</h2>
+                <!-- Description in English -->
                 <p class="text-gray-600 mb-4">
                     Final dictionary (`compressed_lossy_dict`) used for predictions.
                 </p>
 
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <!-- Dictionary comment in English -->
                     <p class="font-mono text-xs text-gray-600 mb-2">
                         // Key: X_start | Value: [Slope (Weight), Intercept (Bias)]
                     </p>
@@ -102,11 +115,11 @@
             </section>
         </div>
         
-        <!-- Main JavaScript Script -->
+        <!-- Main JavaScript Logic -->
         <script>
             // --- DATA AND MODEL (JS Core) ---
 
-            // Final, precise results from the neuron.py execution (Lossy Compression)
+            // Accurate final results from mrls-logos.py execution (Lossy Compression)
             const MRLS_DICT = {
                 // X: [Slope (P), Intercept (O)]
                 "-8": [-1.00, -12.00], // Segment [-8.0, -6.0]
@@ -115,10 +128,10 @@
                 "-2": [2.00, 0.00],    // Segment [-2.0, +2.0] (Extends and removes X=0.0)
                 "2": [3.00, -2.00],    // Segment [+2.0, +4.0] (Removes 3.0)
                 "4": [4.00, -6.00],    // Segment [+4.0, +6.0]
-                "6": [NaN, NaN]        // Final limit of the training range (X=+6.0)
+                "6": [NaN, NaN]        // Final training range limit (X=+6.0)
             };
             
-            // Original data points for the chart
+            // Original points for the graph
             const ORIGINAL_DATA = [
                 {x: -8.0, y: -4.0}, {x: -6.0, y: -6.0}, {x: -5.0, y: -6.01}, {x: -4.0, y: -6.0},
                 {x: -2.0, y: -4.0}, {x: 0.0, y: 0.0}, {x: 2.0, y: 4.0}, {x: 3.0, y: 7.0},
@@ -127,7 +140,7 @@
 
 
             /**
-             * Function to format the dictionary in ascending numerical order.
+             * Function to format the dictionary in ascending numeric order.
              * Applies the '+' sign to positive keys.
              */
             function formatDictionary(dict) {
@@ -145,10 +158,10 @@
                     
                     const [P, O] = dict[key.toString()];
                     
-                    // Format the key (X_start): adds '+' if positive
+                    // Format the key (X_start): add '+' if positive
                     const keyStr = key >= 0 ? `+${key}` : key.toString();
 
-                    // Format values, replacing NaN with 'null' and using 2 decimals
+                    // Format values, replacing NaN with 'null' and using 2 decimal places
                     const pStr = isNaN(P) ? "null" : P.toFixed(2);
                     const oStr = isNaN(O) ? "null" : O.toFixed(2);
                     
@@ -159,13 +172,13 @@
                 return formattedText;
             }
 
-            // Displays the dictionary in readable, sorted format
+            // Display the dictionary in readable and sorted format
             document.getElementById('displayDictionary').textContent = formatDictionary(MRLS_DICT);
 
 
             /**
              * JS implementation of the predict(x, dictionary) function
-             * Internally uses the limit point X=6.0.
+             * Uses the limit point X=6.0 internally.
              */
             function predictMRLS(x) {
                 // Get sorted keys of segment start points
@@ -183,21 +196,21 @@
                 // --- Generalization: Lower Extreme (X < minX) ---
                 if (x < minX) {
                     targetX = minX;
-                    description = `LOWER EXTRAPOLATION`;
+                    description = `EXTRAPOLATION Lower`;
                 } else {
-                    // 1. Search for the active segment (closest Xn less than or equal)
+                    // 1. Search for the active segment (closest Xn less than or equal to X)
                     for (let i = keys.length - 1; i >= 0; i--) {
-                        // Search for the key point that is less than or equal to X, and has valid parameters
+                        // Look for the key point that is less than or equal to X, and has valid parameters
                         if (x >= keys[i] && !isNaN(MRLS_DICT[keys[i].toString()][0])) {
                             targetX = keys[i];
                             break;
                         }
                     }
 
-                    // --- Generalization: Upper Extreme (X > endpoint) ---
+                    // --- Generalization: Upper Extreme (X > final point) ---
                     // If the found segment is the last valid one (4.0), and X exceeds the final limit (6.0)
                     if (targetX === maxXSegmentKey && x > finalXLimit) {
-                        description = `UPPER EXTRAPOLATION`;
+                        description = `EXTRAPOLATION Upper`;
                     }
                 }
                 
@@ -211,8 +224,8 @@
                         const yPredicted = x * P_new + O_new;
                         return {
                             prediction: yPredicted,
-                            segment: `Segment: [X=${targetX.toFixed(2)}] with P=${P_new.toFixed(2)} and O=${O_new.toFixed(2)}`,
-                            description: `UPPER EXTRAPOLATION (Forced)`
+                            segment: `Segment: [X=${targetX.toFixed(2)}] with P=${P_new.toFixed(2)} and I=${O_new.toFixed(2)}`,
+                            description: `EXTRAPOLATION Upper (Forced)`
                         };
                     }
 
@@ -220,7 +233,7 @@
 
                     return {
                         prediction: yPredicted,
-                        segment: `Segment: [X=${targetX.toFixed(2)}] with P=${P.toFixed(2)} and O=${O.toFixed(2)}`,
+                        segment: `Segment: [X=${targetX.toFixed(2)}] with P=${P.toFixed(2)} and I=${O.toFixed(2)}`,
                         description: description
                     };
                 }
@@ -233,7 +246,7 @@
             }
 
             /**
-             * Function to handle user input and display the prediction.
+             * Function to handle user input and display the prediction (activated by the button).
              */
             function getPrediction() {
                 const inputElement = document.getElementById('inputX');
@@ -245,9 +258,11 @@
                 const x = parseFloat(inputElement.value);
 
                 if (isNaN(x)) {
+                    // If input is empty or not a number, show an error.
                     resultText.textContent = "Error! Please enter a valid number.";
                     resultSegment.textContent = "";
                     resultBox.classList.remove('hidden');
+                    // Remove the prediction point if there is no valid value
                     d3.select('#prediction-point').remove();
                     return;
                 }
@@ -258,7 +273,7 @@
                     resultText.innerHTML = `Y = ${result.prediction.toFixed(3)}`;
                     resultSegment.textContent = `${result.description}. ${result.segment}`;
                     
-                    // Calls the chart function to draw the prediction point
+                    // Call the chart function to draw the prediction point
                     drawPredictionPoint(x, result.prediction);
 
                 } else {
@@ -294,7 +309,7 @@
                     .append("g")
                     .attr("transform", `translate(${margin.left},${margin.top})`);
                 
-                // 3. Get the data range
+                // 3. Get data range
                 const allX = ORIGINAL_DATA.map(d => d.x);
                 const allY = ORIGINAL_DATA.map(d => d.y);
 
@@ -306,7 +321,7 @@
                 // Extended range to show extrapolation
                 const xRange = [minX - 3, maxX + 3]; 
                 
-                // KEY FIX: Extend Y range so extrapolations are visible
+                // Extend Y range so extrapolations are visible
                 const yRange = [minY - 5, maxY + 20]; 
 
                 // 4. Define Scales
@@ -319,19 +334,19 @@
                     .range([height, 0]);
 
                 // 5. Draw Axes
-                // X-axis (horizontal) - moved to y=0 value
+                // X-Axis (horizontal) - moved to y=0 value
                 svg.append("g")
                     .attr("transform", `translate(0,${yScale(0)})`)
                     .call(d3.axisBottom(xScale).tickSizeOuter(0))
                     .attr("class", "axis");
 
-                // Y-axis (vertical) - moved to x=0 value
+                // Y-Axis (vertical) - moved to x=0 value
                 svg.append("g")
                     .attr("transform", `translate(${xScale(0)},0)`)
                     .call(d3.axisLeft(yScale).tickSizeOuter(0))
                     .attr("class", "axis");
                 
-                // 6. Configure colors
+                // 6. Set up colors
                 const P_purple = "#8b5cf6"; // Purple for extrapolation
                 const P_indigo = "#4f46e5"; // Indigo for interpolation
 
@@ -361,7 +376,7 @@
                 }
 
                 // --- Upper Extrapolation (right) ---
-                const maxXSegmentIndex = mrlsKeys.length - 2; // Index of the key for the last valid segment (4.0)
+                const maxXSegmentIndex = mrlsKeys.length - 2; // Index of the last valid segment key (4.0)
                 // The extrapolation start point must be the end of the last valid segment (X=6.0)
                 const xExtrapolStart = mrlsKeys[mrlsKeys.length - 1]; // X=6.0
                 const maxXSegment = MRLS_DICT[mrlsKeys[maxXSegmentIndex].toString()]; // Segment [4.0]
@@ -375,7 +390,7 @@
                     const xEnd = xRange[1]; // X=9.0 (chart limit)
                     const yEnd = xEnd * P + O;
 
-                    // Draw line from X=6.0 (end of segment) to X=9.0 (chart extreme)
+                    // Draw line from X=6.0 (segment end) to X=9.0 (chart extreme)
                     svg.append("line")
                         .attr("x1", xScale(xExtrapolStart)) 
                         .attr("y1", yScale(yStart))
@@ -422,8 +437,8 @@
                     .attr("fill", "#ef4444") 
                     .attr("opacity", 0.8);
 
-                // 10. Draw Compressed Neurons (SLRM key points)
-                // Use only the keys that represent active segment starts (excluding the final limit 6:NaN)
+                // 10. Draw Compressed Neurons (MRLS key points)
+                // Use only keys representing active segment starts (excluding the final limit 6:NaN)
                 const compressedPoints = mrlsKeys
                     .filter(key => key !== 6) 
                     .map(x => ({x: x, y: predictMRLS(x).prediction}))
@@ -440,16 +455,18 @@
                     .attr("fill", "#10b981") 
                     .attr("stroke", "#065f46")
                     .attr("stroke-width", 1.5);
+                
+                // Initially, no visible prediction.
             }
 
             /**
              * Draws a dynamic prediction point.
              */
             function drawPredictionPoint(x, y) {
-                // Removes the previous point if it exists
+                // Remove the previous point if it exists
                 d3.select('#prediction-point').remove();
                 
-                // Draws the new point
+                // Draw the new point
                 svg.append("circle")
                     .attr("id", "prediction-point")
                     .attr("cx", xScale(x))
