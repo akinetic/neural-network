@@ -14,13 +14,14 @@ import math
 TOLERANCE = 1e-9 
 
 # Default Epsilon (tolerance) for Lossy Compression.
+# Represents the maximum accepted absolute error.
 EPSILON = 0.03 
 
 # --- UTILITY FUNCTIONS ---
 
 def calculate_segment_params(x1: float, y1: float, x2: float, y2: float) -> tuple[float, float]:
     """Calculates the Slope (P) and Intercept (O) of the line between two points."""
-    # Check for vertical lines using tolerance. This function assumes data is purified.
+    # Check for vertical lines using tolerance.
     if np.isclose(x2, x1, atol=TOLERANCE):
         raise ZeroDivisionError("Points with identical X coordinates (vertical line) detected.")
     
@@ -35,7 +36,7 @@ def format_key_for_display(key):
     return f"{key:.2f}"
 
 def print_mrls_dictionary(dictionary: dict, title: str):
-    """Prints any MRLS dictionary with enhanced and sorted formatting."""
+    """Prints any SLRM/MRLS dictionary with enhanced and sorted formatting."""
     
     sorted_keys = sorted(dictionary.keys())
     
@@ -65,7 +66,7 @@ def print_mrls_dictionary(dictionary: dict, title: str):
 def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float) -> dict:
     """
     Implements the core deterministic sequential simplification algorithm.
-    It extends the segment from a base point as far as possible while satisfying
+    Extends the segment from a base point as far as possible while satisfying
     the provided tolerance (geometric invariance if tolerance=TOLERANCE, or epsilon if tolerance=EPSILON).
     
     Args:
@@ -73,7 +74,7 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
         tolerance: The maximum allowed absolute error (or TOLERANCE for lossless mode).
         
     Returns:
-        dict: The MRLS dictionary of segments {X_start: [P, O]}.
+        dict: The SLRM dictionary of segments {X_start: [P, O]}.
     """
     N = len(sorted_data)
     final_dict = {}
@@ -115,8 +116,7 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
                     is_valid_segment = False
                     break
             
-            # 3. Check if the candidate point itself satisfies the tolerance (Only needed for Lossy, 
-            # but applying it here simplifies the loop break logic)
+            # 3. Check if the candidate point itself satisfies the tolerance
             if is_valid_segment:
                 y_pred_candidate = x_candidate * P_cand + O_cand
                 if tolerance == TOLERANCE:
@@ -127,7 +127,7 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
             
             
             if is_valid_segment:
-                # Segment can be extended: The candidate itself defines the valid segment.
+                # Segment can be extended: The candidate defines the valid segment.
                 last_valid_index = segment_end_index
                 segment_end_index += 1
             else:
@@ -138,8 +138,6 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
         
         # If the index did not advance (N=2 case, or immediate failure), last_valid_index must be at least base_index + 1
         if last_valid_index == base_index:
-             # This should only happen if the segment search failed immediately, meaning the segment
-             # must minimally connect to the next point (N is at least 2).
              last_valid_index = base_index + 1
 
         x_end, y_end = sorted_data[last_valid_index]
@@ -157,7 +155,7 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
     
     return final_dict
 
-# --- MRLS STEPS ---
+# --- SLRM STEPS ---
 
 def compress_lossless(sorted_data: np.ndarray) -> dict:
     """
@@ -166,10 +164,8 @@ def compress_lossless(sorted_data: np.ndarray) -> dict:
     """
     print(f"\n--- 2. Lossless Compression (Geometric Invariance) ---")
     lossless_dict = _sequential_segment_simplification(sorted_data, TOLERANCE)
+    print_mrls_dictionary(lossless_dict, "Result of Lossless Compression") # Print for validation
     
-    # NOTE: In V2.0, we proceed directly to Lossy Compression on the original data,
-    # as the Lossless result is implicitly captured by the lossy check at epsilon=TOLERANCE.
-    # We run it here primarily for logging/debugging the intermediate step.
     return lossless_dict
 
 def compress_lossy(sorted_data: np.ndarray, epsilon: float) -> dict:
@@ -181,48 +177,46 @@ def compress_lossy(sorted_data: np.ndarray, epsilon: float) -> dict:
     lossy_dict = _sequential_segment_simplification(sorted_data, epsilon)
     return lossy_dict
 
-def train_mrls(data: list, epsilon: float) -> dict:
+def train_slrm(data: list, epsilon: float) -> dict:
     """
-    Main function to run the MRLS training process.
+    Main function to run the SLRM training process.
     
     Args:
         data: List of [X, Y] pairs.
         epsilon: Maximum absolute error allowed for lossy compression.
 
     Returns:
-        dict: The Final MRLS Dictionary {X_start: [P (Slope), O (Intercept)]}.
+        dict: The Final SLRM Dictionary {X_start: [P (Slope), O (Intercept)]}.
     """
     # 1. PREPARATION: Convert to NumPy array and sort (Instant Training)
     
     if len(data) < 2:
-        print("Error: At least 2 points are required for MRLS training.")
+        print("Error: At least 2 points are required for SLRM training.")
         return {}
     
-    # NOTE ON STEP 0: Data Purification (Handling duplicate X) is assumed to be
-    # completed prior to calling this function to maintain core logic purity.
+    # NOTE: Data Purification (Handling duplicate X) is assumed complete prior to this call.
 
     input_array = np.array(data, dtype=float)
     # Sorting by X (column 0)
     sorted_data = input_array[input_array[:, 0].argsort()]
     print(f"--- 1. Instant Training (Sorted Data, N={len(sorted_data)}) ---")
 
-    # The lossless step is conceptually necessary but in V2.0,
-    # we rely on the single simplification core logic for the final result.
+    # Step 2: Run and display Lossless Compression
     compress_lossless(sorted_data)
     
-    # 3. Lossy Compression (Step 3 - Final Model Generation)
+    # Step 3: Run Lossy Compression (Final Model Generation)
     final_model = compress_lossy(sorted_data, epsilon)
 
     return final_model
 
-def predict_mrls(x_input: float, mrls_dict: dict) -> float:
+def predict_slrm(x_input: float, slrm_dict: dict) -> float:
     """
-    Performs a prediction using the Final MRLS Dictionary (The Master Equation).
+    Performs a prediction using the Final SLRM Dictionary (The Master Equation).
     """
-    if not mrls_dict:
+    if not slrm_dict:
         return np.nan
 
-    keys = sorted(list(mrls_dict.keys()))
+    keys = sorted(list(slrm_dict.keys()))
     
     # Search for the active segment (the largest X_start that is <= x_input)
     active_key = None
@@ -236,12 +230,15 @@ def predict_mrls(x_input: float, mrls_dict: dict) -> float:
     if active_key is None:
         active_key = keys[0]
 
-    P, O = mrls_dict.get(active_key, [np.nan, np.nan])
+    P, O = slrm_dict.get(active_key, [np.nan, np.nan])
     
     # If the active key is the final (NaN) point, use the segment starting at the second-to-last key
-    if math.isnan(P):
+    if math.isnan(P) and len(keys) > 1:
         active_key = keys[-2]
-        P, O = mrls_dict[active_key]
+        P, O = slrm_dict[active_key]
+    elif math.isnan(P):
+        # Handle case of a single-point model (no segments possible)
+        return np.nan 
 
     # The Master Equation: Y = X * P + O
     y_predicted = x_input * P + O
@@ -258,14 +255,14 @@ if __name__ == '__main__':
         [-4.00, -6.00], [6.00, 18.0], [-5.00, -6.01], [3.00, 7.00], [-2.00, -4.00]
     ]
 
-    print(f"--- MRLS (Logos V2.0) Training Demonstration ---")
+    print(f"--- SLRM (Logos V2.0) Training Demonstration ---")
     print(f"Input Data Points: {len(INPUT_SET)}")
 
     # TRAINING
-    final_model = train_mrls(INPUT_SET, EPSILON)
+    final_model = train_slrm(INPUT_SET, EPSILON)
 
     # DISPLAY RESULTS
-    print_mrls_dictionary(final_model, "4. FINAL MRLS Dictionary (Lossy Compression)")
+    print_mrls_dictionary(final_model, "4. FINAL SLRM Dictionary (Lossy Compression)")
 
     # PREDICTION TEST
     print("\n--- 5. PREDICTION TESTS ---")
@@ -277,9 +274,10 @@ if __name__ == '__main__':
     test_points = [-9.0, -7.0, -5.5, 1.0, 5.0, 8.0]
 
     for x_test in test_points:
-        y_pred = predict_mrls(x_test, final_model)
+        y_pred = predict_slrm(x_test, final_model)
         
         is_extrapolation = x_test < x_min_data or x_test > x_max_data
         status = "EXTRAPOLATION" if is_extrapolation else "Interpolation"
         
         print(f"  X_in: {x_test:6.2f} | Y_pred: {y_pred:8.4f} | Type: {status}")
+        
