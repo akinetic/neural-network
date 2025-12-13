@@ -68,7 +68,6 @@
             <section class="mb-6">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Predicción con Botón</h2>
                 <p class="text-gray-600 mb-4">
-                    <!-- Texto corregido -->
                     Ingresa un valor de X (positivo o <span class="font-bold">negativo</span>) y presiona el botón para calcular la predicción.
                 </p>
 
@@ -453,8 +452,16 @@
 
             /**
              * Dibuja un punto de predicción dinámico.
+             * CORRECCIÓN: Se añade una verificación para asegurar que el objeto SVG esté inicializado.
              */
             function drawPredictionPoint(x, y) {
+                // Verificar que las variables D3 (svg, xScale, yScale) estén definidas
+                if (!svg || !xScale || !yScale) {
+                    console.warn("D3 no está completamente inicializado. Inténtalo de nuevo.");
+                    // Si no está listo, simplemente salimos sin intentar dibujar.
+                    return; 
+                }
+
                 // Elimina el punto anterior si existe
                 d3.select('#prediction-point').remove();
                 
