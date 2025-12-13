@@ -283,4 +283,3 @@ if __name__ == '__main__':
         status = "EXTRAPOLATION" if is_extrapolation else "Interpolation"
         
         print(f"  X_in: {x_test:6.2f} | Y_pred: {y_pred:8.4f} | Type: {status}")
-        
