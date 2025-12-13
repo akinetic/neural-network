@@ -1,6 +1,6 @@
 # slrm-logos.py
 # Author: Logos
-# Version: V2.1 (Refactored Prediction and Logic)
+# Version: V2.2 (Data Purification by Y-Averaging)
 #
 # Segmented Linear Regression Model (SLRM) Implementation.
 # Core Logic: Deterministic Sequential Simplification Algorithm.
@@ -22,6 +22,8 @@ EPSILON = 0.03
 def calculate_segment_params(x1: float, y1: float, x2: float, y2: float) -> tuple[float, float]:
     """Calculates the Slope (P) and Intercept (O) of the line between two points."""
     # Check for vertical lines using tolerance.
+    # NOTE: After purification in train_slrm, this check primarily serves as a safeguard 
+    # against points pathologically close in X (not identical inputs).
     if np.isclose(x2, x1, atol=TOLERANCE):
         raise ZeroDivisionError("Points with identical X coordinates (vertical line) detected.")
     
@@ -72,7 +74,7 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
     the provided tolerance (geometric invariance if tolerance=TOLERANCE, or epsilon if tolerance=EPSILON).
     
     Args:
-        sorted_data: The input data, sorted by X.
+        sorted_data: The input data, PURIFIED and sorted by X.
         tolerance: The maximum allowed absolute error (or TOLERANCE for lossless mode).
         
     Returns:
@@ -87,17 +89,17 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
         segment_end_index = base_index + 1
         
         # 'last_valid_index' tracks the furthest point that successfully defined the segment.
-        # It is initialized to the point that must form the minimal segment (base_index + 1).
         last_valid_index = base_index + 1
 
         while segment_end_index < N:
             x_candidate, y_candidate = sorted_data[segment_end_index]
             
+            # Since data is purified, x_candidate > x_base is guaranteed.
             # 1. Calculate the segment (P, O) from base to candidate
             try:
                 P_cand, O_cand = calculate_segment_params(x_base, y_base, x_candidate, y_candidate)
             except ZeroDivisionError:
-                # If vertical line is encountered, stop segment search here.
+                # Should not be reached with purified data, but kept as final defensive layer.
                 break 
 
             # 2. Check if ALL points *between* the base and the candidate satisfy the tolerance
@@ -139,11 +141,8 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
         
         # 4. Register the final segment (from base_index to last_valid_index)
         
-        # NOTE: last_valid_index is guaranteed to be >= base_index + 1 because we start the segment
-        # search at base_index + 1 and only break if the first point fails (ZeroDivisionError), 
-        # in which case last_valid_index remains base_index + 1 (the minimum segment).
-
         x_end, y_end = sorted_data[last_valid_index]
+        # This call is safe because the data is purified (x_end > x_base is guaranteed)
         P_final, O_final = calculate_segment_params(x_base, y_base, x_end, y_end)
         
         final_dict[x_base] = [P_final, O_final]
@@ -183,6 +182,8 @@ def compress_lossy(sorted_data: np.ndarray, epsilon: float) -> dict:
 def train_slrm(data: list, epsilon: float) -> dict:
     """
     Main function to run the SLRM training process.
+    Includes an initial Data Purification step (Paso 0) to handle duplicate X values
+    by using the average Y value, ensuring robustness against user input errors.
     
     Args:
         data: List of [X, Y] pairs.
@@ -191,18 +192,40 @@ def train_slrm(data: list, epsilon: float) -> dict:
     Returns:
         dict: The Final SLRM Dictionary {X_start: [P (Slope), O (Intercept)]}.
     """
-    # 1. PREPARATION: Convert to NumPy array and sort (Instant Training)
-    
     if len(data) < 2:
-        print("Error: At least 2 points are required for SLRM training.")
+        print("Error: At least 2 points are required for SLRM training (after purification).")
         return {}
     
-    # NOTE: Data Purification (Handling duplicate X) is assumed complete prior to this call.
+    # --- 1. DATA PURIFICATION (Paso 0 for Robustness) ---
+    # Handles X duplicates (identical X, different Y) by calculating the mean Y.
+    # Structure: {X: [Y_sum, count]}
+    aggregated_data = {}
+    for x, y in data:
+        # We ensure X is float for consistent key handling
+        x_float = float(x)
+        y_float = float(y)
+        if x_float in aggregated_data:
+            aggregated_data[x_float][0] += y_float
+            aggregated_data[x_float][1] += 1
+        else:
+            aggregated_data[x_float] = [y_float, 1]
 
-    input_array = np.array(data, dtype=float)
+    # Convert aggregated data back to [X, Y_average] list
+    purified_data = []
+    for x, (y_sum, count) in aggregated_data.items():
+        y_avg = y_sum / count
+        purified_data.append([x, y_avg])
+        
+    if len(purified_data) < 2:
+        print("Error: Less than 2 unique X points remain after purification.")
+        return {}
+        
+    # --- 1. INSTANT TRAINING (Conversion and Sorting) ---
+    
+    input_array = np.array(purified_data, dtype=float)
     # Sorting by X (column 0)
     sorted_data = input_array[input_array[:, 0].argsort()]
-    print(f"--- 1. Instant Training (Sorted Data, N={len(sorted_data)}) ---")
+    print(f"--- 1. Instant Training (Purified & Sorted Data, N={len(sorted_data)}) ---")
 
     # Step 2: Run and display Lossless Compression
     compress_lossless(sorted_data)
@@ -226,14 +249,7 @@ def predict_slrm(x_input: float, slrm_dict: dict) -> float:
     # Convert keys to a NumPy array for fast searchsorted lookup
     keys = np.array(list(slrm_dict.keys()))
     
-    # np.searchsorted finds the index where x_input should be inserted to maintain order.
-    # Using 'right' means if x_input equals a key, the index *after* that key is returned.
-    # We want the index of the segment start (the largest key <= x_input), so we subtract 1.
-    
-    # E.g., keys = [-8, -6, 4]
-    # x_input = -7.0 -> searchsorted returns index 1 (where -6 is). Subtract 1 -> index 0 (-8.0 segment)
-    # x_input = 4.0 -> searchsorted returns index 3 (after 4). Subtract 1 -> index 2 (4.0 segment)
-    
+    # np.searchsorted finds the index of the segment start (largest key <= x_input)
     idx = np.searchsorted(keys, x_input, side='right') - 1
     
     # 1. Handle Lower Extrapolation (x_input < keys[0]):
@@ -262,12 +278,16 @@ def predict_slrm(x_input: float, slrm_dict: dict) -> float:
 if __name__ == '__main__':
     
     # Example Dataset (X, Y)
+    # Includes:
+    # 1. X Duplicates, Y different (4, 5 and 4, 6) -> Should become (4, 5.5)
+    # 2. Exact Duplicates (2, 3 and 2, 3) -> Should become a single (2, 3)
+    # 3. Normal points
     INPUT_SET = [
-        [-6.00, -6.00], [2.00, 4.00], [-8.00, -4.00], [0.00, 0.00], [4.00, 10.0],
-        [-4.00, -6.00], [6.00, 18.0], [-5.00, -6.01], [3.00, 7.00], [-2.00, -4.00]
+        [-6.00, -6.00], [2.00, 3.00], [-8.00, -4.00], [0.00, 0.00], [4.00, 5.0],
+        [-4.00, -6.00], [6.00, 18.0], [4.00, 6.0], [2.00, 3.00], [-2.00, -4.00]
     ]
 
-    print(f"--- SLRM (Logos V2.1) Training Demonstration ---")
+    print(f"--- SLRM (Logos V2.2) Training Demonstration (Includes Purification) ---")
     print(f"Input Data Points: {len(INPUT_SET)}")
 
     # TRAINING (This automatically prints steps 1, 2, 3, and 4)
@@ -277,11 +297,11 @@ if __name__ == '__main__':
     print("\n--- 5. PREDICTION TESTS ---")
     
     # Define test points for Interpolation and Extrapolation
-    x_min_data = min(x[0] for x in INPUT_SET)
-    x_max_data = max(x[0] for x in INPUT_SET)
+    x_min_data = -8.0 # Min X in purified set
+    x_max_data = 6.0  # Max X in purified set
     
-    # Test points include lower extrapolation (-9.0, -7.0), interpolation (-5.5, 1.0, 5.0), and upper extrapolation (8.0).
-    test_points = [-9.0, -7.0, -5.5, 1.0, 5.0, 8.0]
+    # Test points include lower extrapolation (-9.0), interpolation (4.0 - the averaged point), and upper extrapolation (8.0).
+    test_points = [-9.0, -7.0, -5.5, 1.0, 4.0, 8.0]
 
     for x_test in test_points:
         y_pred = predict_slrm(x_test, final_model)
