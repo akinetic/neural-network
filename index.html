@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <link rel="icon" href="favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Title in English -->
     <title>SLRM: Segmented Linear Regression Model</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -15,7 +14,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #eef2ff; /* Very light blue */
+            background-color: #eef2ff;
         }
         .result-box {
             background-color: #f0f9ff;
@@ -24,7 +23,7 @@
         /* Styles for the SVG chart */
         .axis path, .axis line {
             fill: none;
-            stroke: #d1d5db; /* Light gray */
+            stroke: #d1d5db;
             shape-rendering: crispEdges;
         }
         .segment-line {
@@ -33,7 +32,7 @@
             stroke-linecap: round;
         }
         #chart-container {
-            min-height: 450px; /* Increased for better visibility */
+            min-height: 450px;
             background-color: #ffffff; 
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
@@ -44,20 +43,16 @@
 
     <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-xl p-6 md:p-10">
         <header class="mb-8 border-b pb-4">
-            <!-- Title in English -->
             <h1 class="text-3xl font-extrabold text-indigo-700">SLRM: Segmented Linear Regression Model</h1>
-            <!-- Subtitle in English: Updated file name to slrm-logos.py -->
             <p class="text-gray-500 mt-2">Demonstration of the neural compression algorithm (<span class="font-mono text-gray-700">slrm-logos.py</span>).</p>
         </header>
 
         <!-- Chart Container -->
         <section class="mb-10 p-4 border border-indigo-200 rounded-lg bg-indigo-50">
-            <!-- Heading in English -->
             <h2 class="text-2xl font-semibold text-indigo-800 mb-4">Graph of the Compressed Model</h2>
             <div id="chart-container" class="w-full">
                 <!-- D3.js chart will be drawn here -->
             </div>
-            <!-- Legend in English -->
             <p class="text-sm text-gray-500 mt-2 text-center">
                 <span class="text-red-500 font-bold">● Original Data</span> | 
                 <span class="text-emerald-600 font-bold">● Key Neurons</span> | 
@@ -69,18 +64,14 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Prediction Section -->
             <section class="mb-6">
-                <!-- Heading in English -->
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Button Prediction</h2>
-                <!-- Description in English -->
                 <p class="text-gray-600 mb-4">
                     Enter an X value (positive or <span class="font-bold">negative</span>) and press the button to calculate the prediction.
                 </p>
 
                 <div class="flex flex-col gap-4 mb-6">
-                    <!-- Placeholder in English -->
                     <input type="text" id="inputX" placeholder="Enter an X value (e.g., -10, 0, 8)"
                            class="p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition duration-150">
-                    <!-- Button text in English -->
                     <button onclick="getPrediction()"
                             class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-md hover:shadow-lg">
                         Calculate Prediction
@@ -89,7 +80,6 @@
 
                 <!-- Prediction Result -->
                 <div id="predictionResult" class="result-box p-4 rounded-lg hidden">
-                    <!-- Result label in English -->
                     <p class="font-medium text-gray-700">Result:</p>
                     <p id="resultText" class="text-xl font-extrabold text-indigo-800 mt-1"></p>
                     <p id="resultSegment" class="text-sm text-gray-500 mt-2"></p>
@@ -98,15 +88,12 @@
 
             <!-- Structure Section -->
             <section>
-                <!-- Heading in English -->
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">2. Compressed SLRM Structure</h2>
-                <!-- Description in English -->
                 <p class="text-gray-600 mb-4">
                     Final dictionary (`compressed_lossy_dict`) used for predictions.
                 </p>
 
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <!-- Dictionary comment in English -->
                     <p class="font-mono text-xs text-gray-600 mb-2">
                         // Key: X_start | Value: [Slope (Weight), Intercept (Bias)]
                     </p>
@@ -437,7 +424,7 @@
                     .attr("fill", "#ef4444") 
                     .attr("opacity", 0.8);
 
-                // 10. Draw Compressed Neurons (MRLS key points)
+                // 10. Draw Compressed Neurons (SLRM key points)
                 // Use only keys representing active segment starts (excluding the final limit 6:NaN)
                 const compressedPoints = mrlsKeys
                     .filter(key => key !== 6) 
@@ -463,6 +450,12 @@
              * Draws a dynamic prediction point.
              */
             function drawPredictionPoint(x, y) {
+                // Check if D3 variables (svg, xScale, yScale) are defined before attempting to draw
+                if (!svg || !xScale || !yScale) {
+                    console.warn("D3 chart is not fully initialized yet.");
+                    return; 
+                }
+
                 // Remove the previous point if it exists
                 d3.select('#prediction-point').remove();
                 
