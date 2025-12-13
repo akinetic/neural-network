@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# model_en.py: Segmented Linear Regression Model (SLRM) Implementation
+# slrm-logos.py: Segmented Linear Regression Model (SLRM) Implementation
 # with a lossy neural compression algorithm.
 #
 # This file contains the COMPLETE simulation flow for generating the
