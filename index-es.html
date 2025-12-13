@@ -44,7 +44,7 @@
     <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-xl p-6 md:p-10">
         <header class="mb-8 border-b pb-4">
             <h1 class="text-3xl font-extrabold text-indigo-700">MRLS: Regresión Lineal Segmentada</h1>
-            <p class="text-gray-500 mt-2">Demostración del algoritmo de compresión neuronal (`mrls-logos.py`).</p>
+            <p class="text-gray-500 mt-2">Demostración del algoritmo de compresión neuronal (<span class="font-mono text-gray-700">mrls-logos.py</span>).</p>
         </header>
 
         <!-- Contenedor del Gráfico -->
@@ -70,7 +70,8 @@
                 </p>
 
                 <div class="flex flex-col gap-4 mb-6">
-                    <input type="text" id="inputX" placeholder="Ingresa un valor de X (e.g., -10, 0, 8)"
+                    <!-- CORRECCIÓN: Se añadió oninput="getPrediction()" para la reactividad. -->
+                    <input type="text" id="inputX" oninput="getPrediction()" placeholder="Ingresa un valor de X (e.g., -10, 0, 8)"
                            class="p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition duration-150">
                     <button onclick="getPrediction()"
                             class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-md hover:shadow-lg">
@@ -234,6 +235,7 @@
 
             /**
              * Función para manejar la entrada del usuario y mostrar la predicción.
+             * Es llamado por el evento 'oninput' para la reactividad.
              */
             function getPrediction() {
                 const inputElement = document.getElementById('inputX');
@@ -245,9 +247,11 @@
                 const x = parseFloat(inputElement.value);
 
                 if (isNaN(x)) {
-                    resultText.textContent = "¡Error! Por favor, ingresa un número válido.";
+                    // Si el input está vacío o no es un número, oculta los resultados de la predicción
+                    resultText.textContent = inputElement.value === '' ? 'Esperando valor...' : "¡Error! Por favor, ingresa un número válido.";
                     resultSegment.textContent = "";
                     resultBox.classList.remove('hidden');
+                    // Remueve el punto de predicción si no hay un valor válido
                     d3.select('#prediction-point').remove();
                     return;
                 }
@@ -306,7 +310,7 @@
                 // Rango extendido para mostrar la extrapolación
                 const xRange = [minX - 3, maxX + 3]; 
                 
-                // CORRECCIÓN CLAVE: Ampliamos el rango Y para que las extrapolaciones sean visibles
+                // Ampliamos el rango Y para que las extrapolaciones sean visibles
                 const yRange = [minY - 5, maxY + 20]; 
 
                 // 4. Define las Escalas
@@ -440,6 +444,9 @@
                     .attr("fill", "#10b981") 
                     .attr("stroke", "#065f46")
                     .attr("stroke-width", 1.5);
+                
+                // Intenta una predicción inicial o limpia si no hay input.
+                getPrediction();
             }
 
             /**
