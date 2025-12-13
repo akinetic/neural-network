@@ -6,7 +6,7 @@ The core of the solution is the compression algorithm, which transforms an unord
 
 ## Project Structure
 
-* **`model.py`**: Contains the complete implementation of the training process (Creation, Optimization, Compression) and the prediction function (`predict`). This code generates the final SLRM dictionary consumed by the web application.
+* **`slrm-logos.py`**: Contains the complete implementation of the training process (Creation, Optimization, Compression) and the prediction function (`predict`). This code generates the final SLRM dictionary consumed by the web application.
 * **`index.html`**: Implementation of the visualization using D3.js and Vanilla JavaScript, which shows the dataset, the SLRM prediction curve (the piecewise linear function), and allows real-time interaction with the prediction function.
 
 ---
