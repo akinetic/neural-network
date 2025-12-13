@@ -43,7 +43,9 @@
 
     <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-xl p-6 md:p-10">
         <header class="mb-8 border-b pb-4">
-            <h1 class="text-3xl font-extrabold text-indigo-700">MRLS: Regresión Lineal Segmentada</h1>
+            <!-- Título CORREGIDO para incluir "Modelo de" -->
+            <h1 class="text-3xl font-extrabold text-indigo-700">MRLS: Modelo de Regresión Lineal Segmentada</h1>
+            <!-- Subtítulo con aclaración sobre el algoritmo de compresión -->
             <p class="text-gray-500 mt-2">Demostración del algoritmo de compresión neuronal (<span class="font-mono text-gray-700">mrls-logos.py</span>).</p>
         </header>
 
@@ -66,11 +68,12 @@
             <section class="mb-6">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">1. Predicción con Botón</h2>
                 <p class="text-gray-600 mb-4">
-                    Ingresa un valor de X (positivo o **negativo**) y presiona el botón para calcular la predicción.
+                    <!-- Texto corregido -->
+                    Ingresa un valor de X (positivo o <span class="font-bold">negativo</span>) y presiona el botón para calcular la predicción.
                 </p>
 
                 <div class="flex flex-col gap-4 mb-6">
-                    <!-- REMOVIDO: oninput. La predicción se realiza solo al hacer clic en el botón. -->
+                    <!-- Solo onclick, sin oninput -->
                     <input type="text" id="inputX" placeholder="Ingresa un valor de X (e.g., -10, 0, 8)"
                            class="p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition duration-150">
                     <button onclick="getPrediction()"
