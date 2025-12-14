@@ -14,11 +14,11 @@
         body { font-family: 'Inter', sans-serif; }
         
         /* New styles for the data points */
-        .eliminated-point { fill: #ef4444; stroke: #b91c1c; stroke-width: 1.5px; } /* Rojo: Puntos eliminados/intermedios */
-        .breakpoint-point { fill: #3b82f6; stroke: #1e3a8a; stroke-width: 1.5px; } /* Azul: Puntos mantenidos/quiebres */
+        .eliminated-point { fill: #ef4444; stroke: #b91c1c; stroke-width: 1.5px; } /* Red: Eliminated/intermediate points */
+        .breakpoint-point { fill: #3b82f6; stroke: #1e3a8a; stroke-width: 1.5px; } /* Blue: Maintained/breakpoint points */
 
         .model-segment { stroke: #10b981; stroke-width: 3px; fill: none; }
-        .breakpoint { fill: #1e3a8a; stroke: #1e3a8a; stroke-width: 2px; } /* Marcadores de quiebre (pequeños círculos) */
+        .breakpoint { fill: #1e3a8a; stroke: #1e3a8a; stroke-width: 2px; } /* Breakpoint markers (small circles) */
         .prediction-line { stroke: #3b82f6; stroke-dasharray: 5, 5; stroke-width: 2px; }
         
         /* Style for custom alert/message box */
@@ -85,7 +85,7 @@
                     <label for="epsilon" class="block text-sm font-medium text-gray-700 mb-1">Error Tolerance (Epsilon, &epsilon;)</label>
                     <!-- Default value remains 0.50 -->
                     <input type="number" id="epsilon" value="0.50" step="0.000001" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    <p class="text-xs text-gray-500 mt-1">Si &epsilon; = 0, se aplica solo Invarianza Geométrica.</p>
+                    <p class="text-xs text-gray-500 mt-1">If &epsilon; = 0, only Geometric Invariance is applied.</p>
                 </div>
                 
                 <button id="trainButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-blue-500/50">
@@ -153,7 +153,8 @@
             let closeBtn = msgBox.querySelector('button');
             if (!closeBtn) {
                 closeBtn = document.createElement('button');
-                closeBtn.textContent = 'Cerrar';
+                // TRANSLATION: 'Cerrar' -> 'Close'
+                closeBtn.textContent = 'Close';
                 closeBtn.onclick = () => msgBox.classList.add('hidden');
                 closeBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg mt-3';
                 msgBox.appendChild(closeBtn);
@@ -592,7 +593,8 @@
          */
         function handlePredictionClick(event) {
             if (!trainedModel || originalPoints.length === 0) {
-                showPersistentMessage("El modelo no ha sido entrenado o los datos son insuficientes.");
+                // TRANSLATION: 'El modelo no ha sido entrenado o los datos son insuficientes.'
+                showPersistentMessage("The model has not been trained or the data is insufficient.");
                 return;
             }
 
@@ -658,7 +660,8 @@
 
                 // Validation
                 if (isNaN(epsilon) || epsilon < 0) {
-                    showPersistentMessage("Por favor, introduce un valor de Epsilon válido y no negativo.");
+                    // TRANSLATION: 'Por favor, introduce un valor de Epsilon válido y no negativo.'
+                    showPersistentMessage("Please enter a valid and non-negative Epsilon value.");
                     return;
                 }
 
@@ -714,7 +717,8 @@
 
             } catch (error) {
                 console.error("Training failed:", error);
-                showPersistentMessage("Ocurrió un error durante el entrenamiento. Revisa el formato de los datos de entrada o el valor de Epsilon. Detalles del error en la consola.");
+                // TRANSLATION: 'Ocurrió un error durante el entrenamiento. Revisa el formato de los datos de entrada o el valor de Epsilon. Detalles del error en la consola.'
+                showPersistentMessage("An error occurred during training. Check the input data format or the Epsilon value. See console for error details.");
             } finally {
                 button.disabled = false;
                 spinner.classList.add('hidden');
