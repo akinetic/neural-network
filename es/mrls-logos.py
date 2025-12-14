@@ -1,281 +1,413 @@
-# mrls-logos.py
-# Autor: Logos
-# Versión: V2.0
+# slrm-logos.py
+# Segmented Linear Regression Model (SLRM) - Logos Core
+# Version: V5.8 (Geometric Invariance & MRLS Optimization)
+# Authors: Alex Kinetic and Logos
 #
-# Implementación del Modelo de Regresión Lineal Segmentado (MRLS).
-# Lógica Central: Algoritmo de Simplificación Secuencial Determinista.
-# Este archivo contiene el flujo COMPLETO de simulación (Entrenamiento Instantáneo, Compresión Sin Pérdida y con Pérdida).
+# Complete implementation of the SLRM training (compression) and optimized
+# prediction process. Uses the robust two-phase compression: Lossless (Geometric
+# Invariance) followed by Lossy (MRLS, Human Criterion). Features an LRU cache
+# for prediction speed.
 
 import numpy as np
 import math
+from collections import OrderedDict
+from typing import List, Tuple, Dict, Any
 
-# --- CONFIGURACIÓN ---
-# Tolerancia numérica para comparar números de punto flotante (cero virtual).
-TOLERANCE = 1e-9 
+# --- GLOBAL CONSTANTS ---
+# Default Error Tolerance (Epsilon) for Lossy compression.
+EPSILON = 0.50
+# LRU Cache Size for the prediction function.
+CACHE_SIZE = 100
+# Tolerance used for float comparisons (Geometric Invariance or Epsilon=0)
+FLOAT_TOLERANCE = 1e-9
 
-# Épsilon por defecto (tolerancia) para la Compresión con Pérdida.
-EPSILON = 0.03 
+# --- 1. PREDICTION CACHE (LRU Cache) ---
 
-# --- FUNCIONES DE UTILIDAD ---
-
-def calculate_segment_params(x1: float, y1: float, x2: float, y2: float) -> tuple[float, float]:
-    """Calcula la Pendiente (P) y la Intersección (O) de la línea entre dos puntos."""
-    # Verificación de líneas verticales usando tolerancia. Esta función asume que los datos están purificados.
-    if np.isclose(x2, x1, atol=TOLERANCE):
-        raise ZeroDivisionError("Se detectaron puntos con coordenadas X idénticas (línea vertical).")
-    
-    P = (y2 - y1) / (x2 - x1)
-    O = y1 - P * x1
-    return P, O
-
-def format_key_for_display(key):
-    """Asegura que las claves se muestren con dos decimales y el signo '+' si son positivas."""
-    if key >= 0:
-        return f"+{key:.2f}"
-    return f"{key:.2f}"
-
-def print_mrls_dictionary(dictionary: dict, title: str):
-    """Imprime cualquier diccionario MRLS con formato mejorado y ordenado."""
-    
-    sorted_keys = sorted(dictionary.keys())
-    
-    print(f"\n--- {title} ---")
-    print("// Clave: X_inicio | Valor: [P (Pendiente), O (Intersección)]")
-    print("{")
-    
-    for key in sorted_keys:
-        P, O = dictionary[key]
-        
-        key_str = format_key_for_display(key)
-        
-        # Usa math.isnan para verificar si el valor es indefinido (NaN)
-        p_str = f"{P:7.4f}" if not math.isnan(P) else "   NaN"
-        # Incluye el signo para la intersección para mayor claridad
-        o_str = f"{O:+7.4f}" if not math.isnan(O) else "   NaN"
-        
-        print(f"  {key_str}: [ {p_str}, {o_str} ]")
-        
-    print("}")
-    print(f"Segmentos Totales: {len(sorted_keys) - 1}")
-    print("-----------------------------------")
-
-
-# --- ALGORITMO CENTRAL: SIMPLIFICACIÓN SECUENCIAL DE SEGMENTOS (El Núcleo Logos) ---
-
-def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float) -> dict:
+class LRUCache:
     """
-    Implementa el algoritmo central de simplificación secuencial determinista.
-    Extiende el segmento desde un punto base lo más lejos posible mientras satisface
-    la tolerancia proporcionada (invarianza geométrica si tolerance=TOLERANCE, o épsilon si tolerance=EPSILON).
-    
-    Args:
-        sorted_data: Los datos de entrada, ordenados por X.
-        tolerance: El error absoluto máximo permitido (o TOLERANCE para modo sin pérdida).
-        
-    Returns:
-        dict: El diccionario MRLS de segmentos {X_start: [P, O]}.
+    Simple Least Recently Used (LRU) cache optimized for SLRM prediction.
+    Stores the last predictions to avoid repeated segment lookups.
     """
-    N = len(sorted_data)
-    final_dict = {}
-    base_index = 0
+    def __init__(self, capacity: int):
+        # OrderedDict maintains insertion order, useful for the LRU policy.
+        self.cache = OrderedDict()
+        self.capacity = capacity
 
-    while base_index < N - 1:
-        x_base, y_base = sorted_data[base_index]
-        segment_end_index = base_index + 1
-        
-        # 'last_valid_index' rastrea el punto más lejano que define el segmento con éxito
-        last_valid_index = base_index 
+    def get(self, key: float) -> Optional[Dict[str, Any]]:
+        """Retrieves a value and moves it to the end (most recent)."""
+        if key not in self.cache:
+            return None
+        # Move the key to the end to mark it as recently used
+        self.cache.move_to_end(key)
+        return self.cache[key]
 
-        while segment_end_index < N:
-            x_candidate, y_candidate = sorted_data[segment_end_index]
-            
-            # 1. Calcula el segmento (P, O) desde el base hasta el candidato
+    def put(self, key: float, value: Dict[str, Any]):
+        """Inserts or updates a value. If capacity is exceeded, removes the least recently used item."""
+        if key in self.cache:
+            self.cache.move_to_end(key)
+        else:
+            if len(self.cache) >= self.capacity:
+                # Remove the first element (the least recent)
+                self.cache.popitem(last=False)
+            self.cache[key] = value
+
+# Initialize the global cache.
+_prediction_cache = LRUCache(CACHE_SIZE)
+
+# ==============================================================================
+# 2. TRAINING UTILITY FUNCTIONS & PREPROCESSING
+# ==============================================================================
+
+def _clean_and_sort_data(data_string: str) -> List[Tuple[float, float]]:
+    """
+    Parses and cleans the input data string.
+    1. Handles formatting (commas, spaces).
+    2. Sorts by X value.
+    3. Purifies: Handles X duplicates by averaging their Y values.
+    Returns a clean, sorted list of (X, Y) tuples.
+    """
+    points_map = {}
+    
+    for line in data_string.strip().split('\n'):
+        # Split by comma or space
+        parts = line.strip().replace(',', ' ').split()
+        if len(parts) >= 2:
             try:
-                P_cand, O_cand = calculate_segment_params(x_base, y_base, x_candidate, y_candidate)
-            except ZeroDivisionError:
-                # Si se encuentra una línea vertical, detiene la búsqueda del segmento aquí.
-                break 
+                x = float(parts[0])
+                y = float(parts[1])
+                
+                if x in points_map:
+                    current_y, count = points_map[x]
+                    new_y = (current_y * count + y) / (count + 1)
+                    points_map[x] = (new_y, count + 1)
+                else:
+                    points_map[x] = (y, 1)
+            except ValueError:
+                continue
 
-            # 2. Verifica si TODOS los puntos *entre* el base y el candidato satisfacen la tolerancia
-            is_valid_segment = True
+    cleaned_data = [(x, y_count[0]) for x, y_count in points_map.items()]
+    cleaned_data.sort(key=lambda p: p[0])
+    
+    return cleaned_data
+
+# ==============================================================================
+# 3. COMPRESSION FUNCTIONS (LOGOS CORE V5.8)
+# ==============================================================================
+
+def _lossless_compression(data: List[Tuple[float, float]]) -> List[float]:
+    """
+    Section IV: Lossless Compression (Geometric Invariance).
+    Removes intermediate points colineal with their neighbors.
+    Returns a list of critical X-breakpoints.
+    """
+    if len(data) < 3:
+        return [p[0] for p in data]
+
+    critical_x = [data[0][0]]
+    
+    for i in range(1, len(data) - 1):
+        p0, p1, p2 = data[i - 1], data[i], data[i + 1]
+
+        dx_a = p1[0] - p0[0]
+        dx_b = p2[0] - p1[0]
+
+        # Use absolute check for collinearity if segments are not vertical
+        if dx_a != 0 and dx_b != 0:
+            P_a = (p1[1] - p0[1]) / dx_a
+            P_b = (p2[1] - p1[1]) / dx_b
+
+            # Criterion: If slopes are NOT equal (using tolerance), it is a breakpoint.
+            if abs(P_a - P_b) > FLOAT_TOLERANCE:
+                critical_x.append(p1[0])
+        else:
+             # Case of vertical segments or coincident points (already handled by cleaning)
+             critical_x.append(p1[0])
+    
+    # Always keep the last point
+    if len(data) > 1:
+        critical_x.append(data[-1][0])
+
+    return sorted(list(set(critical_x)))
+
+
+def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tuple[float, float]]) -> Tuple[Dict[float, List[float]], float]:
+    """
+    Section V: Lossy Compression (MRLS - Minimum Required Line Segments).
+    Finds the longest possible segment from each breakpoint that respects epsilon.
+    Returns: (SLRM_Model: {X_start: [P, O, X_end]}, Max_Error_Achieved)
+    """
+    if len(initial_keys) < 2:
+        return {}, 0.0
+
+    data_map = {x: y for x, y in data}
+    data_x_list = [x for x, y in data]
+    
+    # Critical Epsilon Logic: If user sets epsilon=0, we enforce strict checking (1e-12).
+    # Otherwise, we use the user's epsilon.
+    epsilon_threshold = max(epsilon, 1e-12) if epsilon == 0 else epsilon
+
+    final_model: Dict[float, List[float]] = {}
+    i = 0  # Index of the starting breakpoint in initial_keys
+    max_overall_error = 0.0
+
+    while i < len(initial_keys) - 1:
+        
+        x_start = initial_keys[i]
+        y_start = data_map[x_start]
+        
+        j = i + 1  # Index of the candidate ending breakpoint (x_end_candidate)
+
+        while j < len(initial_keys):
+            x_end_candidate = initial_keys[j]
+            y_end_candidate = data_map[x_end_candidate]
+
+            dx = x_end_candidate - x_start
             
-            # Itera a través de los puntos desde base+1 hasta (pero NO incluyendo) el candidato
-            for i in range(base_index + 1, segment_end_index):
-                x_inter, y_true = sorted_data[i]
+            # 1. Calculate the test line (P_test, O_test)
+            if dx == 0:
+                P_test, O_test = np.nan, np.nan
+            else:
+                P_test = (y_end_candidate - y_start) / dx
+                O_test = y_start - P_test * x_start
+            
+            error_exceeded = False
+            current_max_error = 0.0
+            
+            # Find point indices for bounds check
+            start_index = data_x_list.index(x_start)
+            end_index = data_x_list.index(x_end_candidate)
+
+            # 2. Check all intermediate points against the test line
+            for k in range(start_index + 1, end_index):
+                x_mid, y_true_mid = data[k]
                 
-                # Predice Y en la línea (P_cand, O_cand)
-                y_pred = x_inter * P_cand + O_cand
-                
-                # Condición de verificación: 
-                if tolerance == TOLERANCE: # Verificación Sin Pérdida (Invarianza Geométrica)
-                    if not np.isclose(y_pred, y_true, atol=TOLERANCE):
-                        is_valid_segment = False
-                        break
-                elif np.abs(y_true - y_pred) > tolerance: # Verificación con Pérdida (Tolerancia Epsilon)
-                    is_valid_segment = False
+                y_hat_mid = P_test * x_mid + O_test
+                error = abs(y_true_mid - y_hat_mid)
+
+                current_max_error = max(current_max_error, error)
+
+                if error > epsilon_threshold:
+                    error_exceeded = True
                     break
             
-            # 3. Verifica si el punto candidato en sí mismo satisface la tolerancia
-            if is_valid_segment:
-                y_pred_candidate = x_candidate * P_cand + O_cand
-                if tolerance == TOLERANCE:
-                     if not np.isclose(y_pred_candidate, y_candidate, atol=TOLERANCE):
-                        is_valid_segment = False
-                elif np.abs(y_candidate - y_pred_candidate) > tolerance:
-                    is_valid_segment = False
-            
-            
-            if is_valid_segment:
-                # El segmento se puede extender: El candidato define el segmento válido.
-                last_valid_index = segment_end_index
-                segment_end_index += 1
-            else:
-                # Un punto intermedio o el candidato rompieron la tolerancia/invarianza. Detiene la búsqueda.
+            if error_exceeded:
+                # Segment failed at index j. Commit the previous valid segment (i -> j-1).
+                x_end_committed = initial_keys[j - 1]
+                y_end_committed = data_map[x_end_committed]
+                
+                # Recalculate P and O for the COMMITTED segment
+                dx_committed = x_end_committed - x_start
+                if dx_committed == 0:
+                    P, O = np.nan, np.nan
+                else:
+                    P = (y_end_committed - y_start) / dx_committed
+                    O = y_start - P * x_start
+                
+                final_model[x_start] = [P, O, x_end_committed]
+                
+                # Update max overall error (using the committed segment's max error)
+                max_overall_error = max(max_overall_error, current_max_error)
+
+                i = j - 1 # Next segment starts at j-1
+                break 
+                
+            elif j == len(initial_keys) - 1:
+                # Reached the very last point. Commit the segment (i -> j).
+                x_end = initial_keys[j]
+                y_end = data_map[x_end]
+                
+                dx = x_end - x_start
+                if dx == 0:
+                    P, O = np.nan, np.nan
+                else:
+                    P = (y_end - y_start) / dx
+                    O = y_start - P * x_start
+                    
+                final_model[x_start] = [P, O, x_end]
+                max_overall_error = max(max_overall_error, current_max_error)
+                
+                i = j # Loop terminates
                 break
-        
-        # 4. Registra el segmento final (desde base_index hasta last_valid_index)
-        
-        # Si el índice no avanzó (caso N=2, o fallo inmediato), last_valid_index debe ser al menos base_index + 1
-        if last_valid_index == base_index:
-             # Esto solo debería ocurrir si la búsqueda del segmento falló inmediatamente, lo que significa que el segmento
-             # debe conectarse mínimamente al siguiente punto (N es al menos 2).
-             last_valid_index = base_index + 1
+            
+            j += 1 # Try to extend the segment further
 
-        x_end, y_end = sorted_data[last_valid_index]
-        P_final, O_final = calculate_segment_params(x_base, y_base, x_end, y_end)
-        
-        final_dict[x_base] = [P_final, O_final]
-        
-        # 5. Establece el nuevo índice base
-        base_index = last_valid_index
+    # Add the final NaN marker if the loop didn't explicitly add it
+    last_key = initial_keys[-1]
+    if last_key not in final_model:
+        final_model[last_key] = [np.nan, np.nan, np.nan]
 
-    # 6. Maneja el último punto (marca el final del diccionario)
-    if base_index == N - 1:
-        x_last, _ = sorted_data[base_index]
-        final_dict[x_last] = [float('nan'), float('nan')] # Marca el final
-    
-    return final_dict
+    return final_model, max_overall_error
 
-# --- PASOS MRLS ---
+# ==============================================================================
+# 4. MAIN TRAINING AND PREDICTION FUNCTIONS
+# ==============================================================================
 
-def compress_lossless(sorted_data: np.ndarray) -> dict:
+def train_slrm(input_data_string: str, epsilon: float = EPSILON) -> Tuple[Dict[float, List[float]], List[Tuple[float, float]], float]:
     """
-    Paso 2: Compresión Sin Pérdida (Invarianza Geométrica).
-    Encuentra el número mínimo de segmentos que representan perfectamente los datos.
-    """
-    print(f"\n--- 2. Compresión Sin Pérdida (Invarianza Geométrica) ---")
-    lossless_dict = _sequential_segment_simplification(sorted_data, TOLERANCE)
-    
-    return lossless_dict
+    Trains the Segmented Linear Regression Model (SLRM) from data.
 
-def compress_lossy(sorted_data: np.ndarray, epsilon: float) -> dict:
-    """
-    Paso 3: Compresión con Pérdida (Criterio Épsilon).
-    Encuentra el número mínimo de segmentos que representan los datos dentro del error máximo 'epsilon'.
-    """
-    print(f"\n--- 3. Compresión con Pérdida (Tolerancia Máxima: {epsilon:.4f}) ---")
-    lossy_dict = _sequential_segment_simplification(sorted_data, epsilon)
-    return lossy_dict
-
-def train_mrls(data: list, epsilon: float) -> dict:
-    """
-    Función principal para ejecutar el proceso de entrenamiento MRLS.
-    
     Args:
-        data: Lista de pares [X, Y].
-        epsilon: Error absoluto máximo permitido para la compresión con pérdida.
+        input_data_string (str): Data points (X, Y) separated by lines.
+        epsilon (float): Maximum error tolerance for Lossy compression.
 
     Returns:
-        dict: El Diccionario MRLS Final {X_start: [P (Pendiente), O (Intersección)]}.
+        Tuple: (SLRM Model, Cleaned Original Points, Max Error Achieved)
     """
-    # 1. PREPARACIÓN: Convertir a array de NumPy y ordenar (Entrenamiento Instantáneo)
+    global _prediction_cache 
     
-    if len(data) < 2:
-        print("Error: Se requieren al menos 2 puntos para el entrenamiento MRLS.")
-        return {}
+    # 1. Cleaning and Sorting
+    original_points = _clean_and_sort_data(input_data_string)
     
-    # NOTA SOBRE EL PASO 0: Se asume que la Purificación de Datos (Manejo de X duplicadas) 
-    # se completa antes de llamar a esta función para mantener la pureza de la lógica central.
-
-    input_array = np.array(data, dtype=float)
-    # Ordenar por X (columna 0)
-    sorted_data = input_array[input_array[:, 0].argsort()]
-    print(f"--- 1. Entrenamiento Instantáneo (Datos Ordenados, N={len(sorted_data)}) ---")
-
-    # El paso sin pérdida es conceptualmente necesario, aunque en V2.0 confiamos 
-    # en la lógica central de simplificación para el resultado final.
-    compress_lossless(sorted_data)
+    if len(original_points) < 2:
+        return {}, original_points, 0.0
+        
+    # 2. Lossless Compression (Geometric Invariance)
+    initial_breakpoints_x = _lossless_compression(original_points)
     
-    # 3. Compresión con Pérdida (Paso 3 - Generación del Modelo Final)
-    final_model = compress_lossy(sorted_data, epsilon)
+    # 3. Lossy Compression (MRLS)
+    final_model, max_error = _lossy_compression(initial_breakpoints_x, epsilon, original_points)
+    
+    # Clear the prediction cache when training a new model
+    _prediction_cache = LRUCache(CACHE_SIZE)
+    
+    return final_model, original_points, max_error
 
-    return final_model
 
-def predict_mrls(x_input: float, mrls_dict: dict) -> float:
+def predict_slrm(x_in: float, slrm_model: Dict[float, List[float]], original_points: List[Tuple[float, float]]) -> Dict[str, Any]:
     """
-    Realiza una predicción utilizando el Diccionario MRLS Final (La Ecuación Maestra).
+    Predicts the Y value for an input X using the compressed SLRM model.
     """
-    if not mrls_dict:
-        return np.nan
+    if not slrm_model or not original_points:
+        return {'x_in': x_in, 'y_pred': np.nan, 'slope_P': np.nan, 'intercept_O': np.nan, 'cache_hit': False}
 
-    keys = sorted(list(mrls_dict.keys()))
+    # Attempt to get the prediction from the cache
+    cached_result = _prediction_cache.get(x_in)
+    if cached_result is not None:
+        cached_result['cache_hit'] = True
+        return cached_result
+        
+    # Get keys for valid segments (those with calculated P)
+    segment_starts = sorted([x for x, segment in slrm_model.items() if not math.isnan(segment[0])])
     
-    # Busca el segmento activo (el X_start más grande que es <= x_input)
+    if not segment_starts:
+        return {'x_in': x_in, 'y_pred': np.nan, 'slope_P': np.nan, 'intercept_O': np.nan, 'cache_hit': False}
+
+    min_x = original_points[0][0]
+    max_x = original_points[-1][0]
+    
     active_key = None
-    for key in reversed(keys):
-        # Usa TOLERANCE para la comparación de punto flotante
-        if x_input >= key - TOLERANCE: 
-            active_key = key
-            break
+
+    if x_in < min_x:
+        # Extrapolation (Left): use the first segment
+        active_key = segment_starts[0]
+    elif x_in >= max_x:
+        # Extrapolation (Right) or exact end point: use the last segment
+        active_key = segment_starts[-1]
+    else:
+        # Interpolation: find the segment where x_start <= x_in < x_end
+        for x_start in segment_starts:
+            x_end = slrm_model[x_start][2] # X_end of the segment
             
-    # Maneja la Extrapolación Inferior: Si x_input está por debajo del primer X_start, usa el primer segmento.
+            if x_in >= x_start and x_in < x_end:
+                active_key = x_start
+                break
+
     if active_key is None:
-        active_key = keys[0]
-
-    P, O = mrls_dict.get(active_key, [np.nan, np.nan])
-    
-    # Si la clave activa es el punto final (NaN), usa el segmento que comienza en la penúltima clave
-    if math.isnan(P):
-        active_key = keys[-2]
-        P, O = mrls_dict[active_key]
-
-    # La Ecuación Maestra: Y = X * P + O
-    y_predicted = x_input * P + O
-    
-    return y_predicted
-
-# --- DEMOSTRACIÓN ---
-
-if __name__ == '__main__':
-    
-    # Conjunto de Datos de Ejemplo (X, Y)
-    INPUT_SET = [
-        [-6.00, -6.00], [2.00, 4.00], [-8.00, -4.00], [0.00, 0.00], [4.00, 10.0],
-        [-4.00, -6.00], [6.00, 18.0], [-5.00, -6.01], [3.00, 7.00], [-2.00, -4.00]
-    ]
-
-    print(f"--- Demostración de Entrenamiento MRLS (Logos V2.0) ---")
-    print(f"Puntos de Datos de Entrada: {len(INPUT_SET)}")
-
-    # ENTRENAMIENTO
-    final_model = train_mrls(INPUT_SET, EPSILON)
-
-    # MOSTRAR RESULTADOS
-    print_mrls_dictionary(final_model, "4. DICCIONARIO MRLS FINAL (Compresión con Pérdida)")
-
-    # PRUEBA DE PREDICCIÓN
-    print("\n--- 5. PRUEBAS DE PREDICCIÓN ---")
-    
-    # Define puntos de prueba para Interpolación y Extrapolación
-    x_min_data = min(x[0] for x in INPUT_SET)
-    x_max_data = max(x[0] for x in INPUT_SET)
-    
-    test_points = [-9.0, -7.0, -5.5, 1.0, 5.0, 8.0]
-
-    for x_test in test_points:
-        y_pred = predict_mrls(x_test, final_model)
+        # Should only happen if the data is a single point or unusual edge case not covered
+        P, O = np.nan, np.nan
+    else:
+        P, O, _ = slrm_model[active_key]
         
-        is_extrapolation = x_test < x_min_data or x_test > x_max_data
-        status = "EXTRAPOLACIÓN" if is_extrapolation else "Interpolación"
-        
-        print(f"  X_in: {x_test:6.2f} | Y_pred: {y_pred:8.4f} | Tipo: {status}")
+    y_pred = x_in * P + O if not math.isnan(P) else np.nan
+    
+    result = {
+        'x_in': x_in, 
+        'y_pred': y_pred, 
+        'slope_P': P, 
+        'intercept_O': O, 
+        'cache_hit': False
+    }
+
+    # Save to cache
+    _prediction_cache.put(x_in, result)
+    
+    return result
+
+# ==============================================================================
+# EXAMPLE USAGE
+# ==============================================================================
+
+if __name__ == "__main__":
+    import time
+    
+    # Data used in the interactive visualizer V5.8
+    SAMPLE_DATA = """
+1, 1
+2, 1.5
+3, 1.7
+4, 3.5
+5, 5
+6, 4.8
+7, 4.5
+8, 4.3
+9, 4.1
+10, 4.2
+11, 4.3
+12, 4.6
+13, 5.5
+14, 7
+15, 8.5
+"""
+    
+    print("--- SLRM Training and Prediction Example (V5.8) ---")
+    
+    # --------------------------------------------------------------------------
+    # TEST 1: Lossy Compression (epsilon=0.5)
+    # --------------------------------------------------------------------------
+    epsilon_test = 0.5
+    print(f"\n[TEST 1] Training with Epsilon = {epsilon_test:.6f}")
+    
+    start_time = time.time()
+    model, points, max_error = train_slrm(SAMPLE_DATA, epsilon_test)
+    training_duration = time.time() - start_time
+    
+    segment_count = sum(1 for P, O, X_end in model.values() if not math.isnan(P))
+    breakpoint_count = segment_count + 1 if segment_count > 0 else 0
+    
+    print(f"Time Taken: {training_duration:.4f} seconds.")
+    print(f"Original Points: {len(points)}")
+    print(f"Final Breakpoints: {breakpoint_count}")
+    print(f"Segments Generated: {segment_count}")
+    print(f"Max Error Achieved: {max_error:.7f}")
+    
+    print("\nModel Result (X_start: [P, O, X_end]):")
+    for x_start, segment in model.items():
+        if not math.isnan(segment[0]):
+            print(f"  {x_start:+.2f}: P={segment[0]:+.4f}, O={segment[1]:+.4f}, X_end={segment[2]:+.2f}")
+    
+    # Prediction Test
+    X_TEST_VALUES = [0.0, 5.5, 9.5, 15.0, 16.0]
+    print("\nPrediction Test:")
+    for x in X_TEST_VALUES:
+        result = predict_slrm(x, model, points)
+        print(f"Predict X={result['x_in']:+.2f} | Y={result['y_pred']:+.6f} | Active Segment P={result['slope_P']:+.4f}")
+    
+    # --------------------------------------------------------------------------
+    # TEST 2: Lossless Compression (epsilon=0)
+    # --------------------------------------------------------------------------
+    epsilon_zero = 0.0
+    print(f"\n[TEST 2] Training with Epsilon = {epsilon_zero:.6f} (Enforcing Geometric Invariance)")
+    
+    model_zero, _, max_error_zero = train_slrm(SAMPLE_DATA, epsilon_zero)
+    
+    segment_count_zero = sum(1 for P, O, X_end in model_zero.values() if not math.isnan(P))
+    
+    print(f"Segments Generated: {segment_count_zero}")
+    print(f"Max Error Achieved: {max_error_zero:.7f} (Should be near zero)")
+
+    # Cache Test
+    x_cache_test = 5.5
+    predict_slrm(x_cache_test, model, points) # First call (miss)
+    cache_result = predict_slrm(x_cache_test, model, points) # Second call (hit)
+    print(f"\n[INFO] Cache Test (X={x_cache_test}): Hit={cache_result['cache_hit']}, Y={cache_result['y_pred']:+.6f}")
+    print(f"[INFO] LRU Cache Status (Size: {len(_prediction_cache.cache)}/{CACHE_SIZE})")
