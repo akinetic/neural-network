@@ -176,13 +176,13 @@ The following conceptual references inspire or contrast with the fundamental pri
 
 Project Files
 
-[readme-demo](index.html) : The web application for visualization.
+[readme-demo](https://akinetic.github.io/neural-network) : The web application for visualization.
 
 [slrm-logos.py](slrm-logos.py) : The main source code containing the training and prediction logic (V5.10b).
 
-[slrm_manual.html](slrm_manual.html)  : (Content in this file): This technical manual (V5.10b).
+[slrm_manual.html](https://akinetic.github.io/neural-network/slrm_manual.html)  : (Content in this file): This technical manual (V5.10b).
 
-[slrm_visualizer.html](slrm_visualizer.html) : The web application for visualization (Using previous logic - Not updated).
+[slrm_visualizer.html](https://akinetic.github.io/neural-network/slrm_visualizer.html) : The web application for visualization (Using previous logic - Not updated).
 
 ---
 
