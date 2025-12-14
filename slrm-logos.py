@@ -1,6 +1,6 @@
 # slrm-logos.py
 # Author: Logos
-# Version: V3.0 (Prediction Cache Implementation)
+# Version: V4.0 (Core Vectorization for Training Speed)
 #
 # Segmented Linear Regression Model (SLRM) Implementation.
 # Core Logic: Deterministic Sequential Simplification Algorithm.
@@ -76,8 +76,7 @@ def print_mrls_dictionary(dictionary: dict, title: str):
 def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float) -> dict:
     """
     Implements the core deterministic sequential simplification algorithm.
-    Extends the segment from a base point as far as possible while satisfying
-    the provided tolerance.
+    V4.0: The segment check is now fully vectorized using NumPy for massive speedup.
     """
     N = len(sorted_data)
     final_dict = {}
@@ -87,6 +86,7 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
         x_base, y_base = sorted_data[base_index]
         segment_end_index = base_index + 1
         
+        # 'last_valid_index' tracks the furthest point that successfully defined the segment.
         last_valid_index = base_index + 1
 
         while segment_end_index < N:
@@ -98,24 +98,29 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
             except ZeroDivisionError:
                 break 
 
-            # 2. Check if ALL points *between* the base and the candidate satisfy the tolerance
-            is_valid_segment = True
+            # --- V4.0: VECTORIZED CHECK ---
             
-            # Iterate through points from base+1 up to (and including) the candidate
-            for i in range(base_index, segment_end_index + 1):
-                x_inter, y_true = sorted_data[i] 
-                
-                y_pred = x_inter * P_cand + O_cand
-                
-                # Check condition: 
-                if tolerance == TOLERANCE: # Lossless Check (Geometric Invariance)
-                    if not np.isclose(y_pred, y_true, atol=TOLERANCE):
-                        is_valid_segment = False
-                        break
-                elif np.abs(y_true - y_pred) > tolerance: # Lossy Check (Epsilon Tolerance)
-                    is_valid_segment = False
-                    break
+            # Slice the data to check (from base_index up to and including segment_end_index)
+            intermediate_data = sorted_data[base_index : segment_end_index + 1]
+            X_segment = intermediate_data[:, 0]
+            Y_true_segment = intermediate_data[:, 1]
             
+            # Calculate predicted Y values for the entire segment at once: Y = X * P + O
+            Y_pred_segment = X_segment * P_cand + O_cand
+            
+            is_valid_segment = False
+
+            if tolerance == TOLERANCE: # Lossless Check (Geometric Invariance)
+                # np.isclose checks if all points lie exactly on the line (within TOLERANCE)
+                is_valid_segment = np.all(np.isclose(Y_pred_segment, Y_true_segment, atol=TOLERANCE))
+            else: # Lossy Check (Epsilon Tolerance)
+                # Calculate absolute errors and check if the maximum error is within epsilon
+                errors = np.abs(Y_true_segment - Y_pred_segment)
+                max_error = np.max(errors)
+                is_valid_segment = max_error <= tolerance
+            
+            # --- END V4.0: VECTORIZED CHECK ---
+
             if is_valid_segment:
                 # Segment can be extended: The candidate defines the valid segment.
                 last_valid_index = segment_end_index
@@ -141,6 +146,7 @@ def _sequential_segment_simplification(sorted_data: np.ndarray, tolerance: float
     return final_dict
 
 # --- VALIDATION FUNCTION (L_inf Norm Check) ---
+# NOTE: This function remains loop-based as it relies on segment lookup (prediction) for each point.
 
 def validate_max_error(original_data: np.ndarray, slrm_dict: dict, max_allowed_epsilon: float):
     """
@@ -332,7 +338,7 @@ if __name__ == '__main__':
         [8.00, 26.00], [10.00, 27.00]
     ]
 
-    print(f"--- SLRM (Logos V3.0) Training Demonstration (Cache Enabled) ---")
+    print(f"--- SLRM (Logos V4.0) Training Demonstration (Core Vectorization Enabled) ---")
     print(f"Input Data Points: {len(INPUT_SET)}")
     print(f"Prediction Cache Size: {PREDICTION_CACHE_SIZE}")
 
