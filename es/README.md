@@ -171,6 +171,20 @@ Las siguientes referencias conceptuales inspiran o contrastan con los principios
 7.  Sistemas de Memoria Asociativa: El Diccionario Optimizado como una forma de estructura de datos eficiente para el almacenamiento y recuperación rápida de patrones.
 8.  Diseño de Sistemas Tolerantes a Fallos: Principios que permiten la modificación o actualización de componentes (Modificación en Caliente) sin interrupción del servicio global.
 9.  Teoría de Series Temporales: Trabajos sobre la detección de patrones de progresión (Metaprogresión) para realizar extrapolaciones de largo alcance.
+10.  
+
+---
+
+Archivos del Proyecto
+
+[readme-demo](https://akinetic.github.io/neural-network) : La aplicación web para la visualización.
+
+[slrm-logos.py](slrm-logos.py) : 
+El código fuente principal que contiene la lógica de entrenamiento y predicción (V5.10b).
+
+[slrm_manual.html](https://akinetic.github.io/neural-network/slrm_manual.html)  : (Contenido de este archivo): Este manual técnico (V5.10b).
+
+[slrm_visualizer.html](https://akinetic.github.io/neural-network/slrm_visualizer.html) : La aplicación web para la visualización (Utiliza lógica anterior - No actualizado).
 
 ---
 
