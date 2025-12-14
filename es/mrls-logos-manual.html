@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLRM Technical Manual</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; color: #1e293b; padding: 20px; }
+        .manual-container { max-width: 900px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+        h1 { font-size: 2.2em; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; margin-bottom: 20px; color: #1e3a8a; }
+        h2 { font-size: 1.8em; color: #1f2937; margin-top: 30px; }
+        h3 { font-size: 1.4em; color: #374151; margin-top: 20px; }
+        pre { background: #eef2ff; border-left: 4px solid #3b82f6; padding: 15px; overflow-x: auto; border-radius: 6px; font-size: 0.9em; }
+        code { background: #eef2ff; padding: 2px 4px; border-radius: 3px; }
+        ul { list-style-type: disc; margin-left: 20px; }
+    </style>
+</head>
+<body>
+    <div class="manual-container">
+        <h1>SLRM-LOGOS Technical Manual (V5.5)</h1>
+        <h2>Segmented Linear Regression Model (SLRM) Core Architecture</h2>
+
+        <p>The Segmented Linear Regression Model (SLRM), driven by the deterministic Logos Core algorithm, is a fast and efficient solution for the compression and modeling of one-dimensional data (Time Series, calibration curves, etc.).</p>
+
+        <p>It utilizes the **Minimum Required Line Segments (MRLS)** technique to represent datasets with the smallest possible number of linear segments, meeting a user-defined error tolerance ($\epsilon$).</p>
+
+        <hr style="border: 0; border-top: 1px dashed #e5e7eb; margin: 30px 0;">
+
+        <h3>Key Features (SLRM V5.5)</h3>
+        <ul>
+            <li><strong>Speed (V5.5):</strong> The core compression process is non-iterative and deterministic, relying on vectorized NumPy operations for optimal training speed, making it an **Instant Training** model.</li>
+            <li><strong>Compression (Lossless/Lossy):</strong> Implements both exact geometric compression (`_lossless_compression`) and tolerance-based compression (`_lossy_compression`) for efficient dictionary storage.</li>
+            <li><strong>Prediction Optimized:</strong> Uses an LRU (Least Recently Used) prediction cache for dramatically accelerating real-time inference of repeated or nearby points.</li>
+            <li><strong>Robustness:</strong> Includes an initial data purification stage (`_clean_and_sort_data`) to handle duplicates (averaging Y values for the same X).</li>
+            <li><strong>Full Interpretability:</strong> The model is a "transparent box," storing explicit knowledge (Slope P and Intercept O) for every segment.</li>
+        </ul>
+
+        <h3>Training Process Stages (V5.5)</h3>
+        <p>The <code>train_slrm</code> function executes a four-stage compression pipeline:</p>
+
+        <ol>
+            <li><strong>Purification & Sorting (<code>_clean_and_sort_data</code>):</strong> Converts input data into a clean, sorted sequence of points, effectively creating the **Base Dictionary**.</li>
+            <li><strong>Optimization (<code>_calculate_optimized_dict</code>):</strong> Calculates the Slope (P) and Y-Intercept (O) for every segment, transforming the base dictionary into segment parameters (Weights and Biases).</li>
+            <li><strong>Lossless Compression (<code>_lossless_compression</code>):</strong> Eliminates intermediate points that are geometrically collinear, preserving all original precision.</li>
+            <li><strong>Lossy Compression (MRLS, <code>_lossy_compression</code>):</strong> Applies the tolerance $\epsilon$ to eliminate non-essential breakpoints, ensuring the maximum interpolation error remains $\le \epsilon$.</li>
+        </ol>
+
+        <h3 style="margin-top: 40px;">Usage Quick Guide</h3>
+        <p>The model is trained and used via the <code>train_slrm</code> and <code>predict_slrm</code> functions in the <code>slrm-logos.py</code> file.</p>
+
+        <h4>Requirements:</h4>
+        <p>You need to have Python and the NumPy library installed.</p>
+        <pre><code>pip install numpy</code></pre>
+
+        <h4>1. Training</h4>
+        <p>Define your input data and the tolerance ($\epsilon$).</p>
+        <pre><code>from slrm_logos import train_slrm, EPSILON
+
+INPUT_DATA = [
+    [-8.00, -4.00], [4.00, 5.0], [6.00, 18.0], [10.00, 27.00]
+    # ... more points
+]
+
+# Train the model with the default epsilon (0.03)
+final_model = train_slrm(INPUT_DATA, EPSILON) 
+
+# The 'final_model' result is a dictionary {X_start: [P, O]} 
+# which defines the model segments.</code></pre>
+
+        <h4>2. Prediction</h4>
+        <p>Use the model dictionary (<code>final_model</code>) to obtain predictions for any X point.</p>
+        <pre><code>from slrm_logos import predict_slrm
+
+x_test = 4.5
+result = predict_slrm(x_test, final_model)
+
+print(f"Prediction for X={result['x_in']}: Y={result['y_pred']:.4f}")
+print(f"Active Segment: P={result['slope_P']:.4f}, O={result['intercept_O']:.4f}")</code></pre>
+
+        <h3 style="margin-top: 40px;">Project Files</h3>
+        <ul>
+            <li><code>slrm-logos.py</code>: The main source code containing the training and prediction logic (<strong>V5.5</strong>).</li>
+            <li><code>index.html</code>: The web application for visualization and interactive prediction (D3.js).</li>
+            <li><code>README.md</code>: Project overview and architecture.</li>
+            <li><code>SLRM-LOGOS.md</code> (Content in this file): This technical manual.</li>
+        </ul>
+    </div>
+</body>
+</html>
+
