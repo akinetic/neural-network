@@ -174,6 +174,9 @@ The following conceptual references inspire or contrast with the fundamental pri
 
 ---
 
-Alex Kinetic
+Authors
 
-MIT LICENSE
+Alex Kinetic and Logos
+
+Project under MIT License
+
