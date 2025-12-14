@@ -1,6 +1,6 @@
 # slrm-logos.py
 # Segmented Linear Regression Model (SLRM) - Logos Core
-# Version: V5.8 (Geometric Invariance & MRLS Optimization)
+# Version: V5.10b (Verified Final Version)
 # Authors: Alex Kinetic and Logos
 #
 # Complete implementation of the SLRM training (compression) and optimized
@@ -11,7 +11,10 @@
 import numpy as np
 import math
 from collections import OrderedDict
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
+
+# Definición de tipos para el modelo SLRM
+SLRMModel = Dict[float, List[float]]
 
 # --- GLOBAL CONSTANTS ---
 # Default Error Tolerance (Epsilon) for Lossy compression.
@@ -44,6 +47,7 @@ class LRUCache:
     def put(self, key: float, value: Dict[str, Any]):
         """Inserts or updates a value. If capacity is exceeded, removes the least recently used item."""
         if key in self.cache:
+            # CRITICAL FIX (V5.10): Mover la CLAVE (key), no el VALOR.
             self.cache.move_to_end(key)
         else:
             if len(self.cache) >= self.capacity:
@@ -66,7 +70,7 @@ def _clean_and_sort_data(data_string: str) -> List[Tuple[float, float]]:
     3. Purifies: Handles X duplicates by averaging their Y values.
     Returns a clean, sorted list of (X, Y) tuples.
     """
-    points_map = {}
+    points_map: Dict[float, Tuple[float, int]] = {}
     
     for line in data_string.strip().split('\n'):
         # Split by comma or space
@@ -91,7 +95,7 @@ def _clean_and_sort_data(data_string: str) -> List[Tuple[float, float]]:
     return cleaned_data
 
 # ==============================================================================
-# 3. COMPRESSION FUNCTIONS (LOGOS CORE V5.8)
+# 3. COMPRESSION FUNCTIONS (LOGOS CORE V5.10b)
 # ==============================================================================
 
 def _lossless_compression(data: List[Tuple[float, float]]) -> List[float]:
@@ -130,7 +134,7 @@ def _lossless_compression(data: List[Tuple[float, float]]) -> List[float]:
     return sorted(list(set(critical_x)))
 
 
-def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tuple[float, float]]) -> Tuple[Dict[float, List[float]], float]:
+def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tuple[float, float]]) -> Tuple[SLRMModel, float]:
     """
     Section V: Lossy Compression (MRLS - Minimum Required Line Segments).
     Finds the longest possible segment from each breakpoint that respects epsilon.
@@ -143,12 +147,31 @@ def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tup
     data_x_list = [x for x, y in data]
     
     # Critical Epsilon Logic: If user sets epsilon=0, we enforce strict checking (1e-12).
-    # Otherwise, we use the user's epsilon.
     epsilon_threshold = max(epsilon, 1e-12) if epsilon == 0 else epsilon
 
-    final_model: Dict[float, List[float]] = {}
+    final_model: SLRMModel = {}
     i = 0  # Index of the starting breakpoint in initial_keys
     max_overall_error = 0.0
+    
+    def _calculate_segment_max_error(x_s, x_e, P, O, data_x_list, data):
+        """Helper para calcular el error máximo de un segmento COMPROMETIDO."""
+        # Check if P and O are calculated (i.e., not NaN)
+        if math.isnan(P) or math.isnan(O):
+            return 0.0 
+            
+        start_idx = data_x_list.index(x_s)
+        end_idx = data_x_list.index(x_e)
+        max_err = 0.0
+        
+        # Iterar sobre los puntos intermedios (exclusivos del punto inicial y final)
+        for k in range(start_idx + 1, end_idx):
+            x_mid, y_true_mid = data[k]
+            
+            y_hat_mid = P * x_mid + O
+            error = abs(y_true_mid - y_hat_mid)
+            
+            max_err = max(max_err, error)
+        return max_err
 
     while i < len(initial_keys) - 1:
         
@@ -156,6 +179,8 @@ def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tup
         y_start = data_map[x_start]
         
         j = i + 1  # Index of the candidate ending breakpoint (x_end_candidate)
+        
+        current_test_max_error = 0.0 
 
         while j < len(initial_keys):
             x_end_candidate = initial_keys[j]
@@ -171,31 +196,36 @@ def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tup
                 O_test = y_start - P_test * x_start
             
             error_exceeded = False
-            current_max_error = 0.0
             
             # Find point indices for bounds check
             start_index = data_x_list.index(x_start)
             end_index = data_x_list.index(x_end_candidate)
 
-            # 2. Check all intermediate points against the test line
+            # 2. Check all intermediate points against the test line (i -> j)
+            # Reset max error tracking for the NEW test line segment (i -> j)
+            current_test_max_error = 0.0
+
             for k in range(start_index + 1, end_index):
                 x_mid, y_true_mid = data[k]
                 
-                y_hat_mid = P_test * x_mid + O_test
-                error = abs(y_true_mid - y_hat_mid)
+                if math.isnan(P_test):
+                    error = abs(y_true_mid - y_start)
+                else:
+                    y_hat_mid = P_test * x_mid + O_test
+                    error = abs(y_true_mid - y_hat_mid)
 
-                current_max_error = max(current_max_error, error)
+                current_test_max_error = max(current_test_max_error, error)
 
                 if error > epsilon_threshold:
                     error_exceeded = True
                     break
             
             if error_exceeded:
-                # Segment failed at index j. Commit the previous valid segment (i -> j-1).
+                # Segment i -> j FAILED. Commit the previous valid segment (i -> j-1).
                 x_end_committed = initial_keys[j - 1]
                 y_end_committed = data_map[x_end_committed]
                 
-                # Recalculate P and O for the COMMITTED segment
+                # Recalculate P and O for the COMMITTED segment (i -> j-1)
                 dx_committed = x_end_committed - x_start
                 if dx_committed == 0:
                     P, O = np.nan, np.nan
@@ -205,10 +235,11 @@ def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tup
                 
                 final_model[x_start] = [P, O, x_end_committed]
                 
-                # Update max overall error (using the committed segment's max error)
-                max_overall_error = max(max_overall_error, current_max_error)
+                # CRITICAL FIX (V5.9 logic): Recalculate max error for the COMMITTED segment (i -> j-1)
+                committed_segment_max_error = _calculate_segment_max_error(x_start, x_end_committed, P, O, data_x_list, data)
+                max_overall_error = max(max_overall_error, committed_segment_max_error)
 
-                i = j - 1 # Next segment starts at j-1
+                i = j - 1 # Next segment starts at j-1 (the committed end point)
                 break 
                 
             elif j == len(initial_keys) - 1:
@@ -224,7 +255,9 @@ def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tup
                     O = y_start - P * x_start
                     
                 final_model[x_start] = [P, O, x_end]
-                max_overall_error = max(max_overall_error, current_max_error)
+                
+                # The max error for this final valid segment is stored in current_test_max_error
+                max_overall_error = max(max_overall_error, current_test_max_error)
                 
                 i = j # Loop terminates
                 break
@@ -232,9 +265,10 @@ def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tup
             j += 1 # Try to extend the segment further
 
     # Add the final NaN marker if the loop didn't explicitly add it
-    last_key = initial_keys[-1]
-    if last_key not in final_model:
-        final_model[last_key] = [np.nan, np.nan, np.nan]
+    if initial_keys:
+        last_key = initial_keys[-1]
+        if last_key not in final_model:
+            final_model[last_key] = [np.nan, np.nan, np.nan]
 
     return final_model, max_overall_error
 
@@ -242,7 +276,7 @@ def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tup
 # 4. MAIN TRAINING AND PREDICTION FUNCTIONS
 # ==============================================================================
 
-def train_slrm(input_data_string: str, epsilon: float = EPSILON) -> Tuple[Dict[float, List[float]], List[Tuple[float, float]], float]:
+def train_slrm(input_data_string: str, epsilon: float = EPSILON) -> Tuple[SLRMModel, List[Tuple[float, float]], float]:
     """
     Trains the Segmented Linear Regression Model (SLRM) from data.
 
@@ -259,6 +293,7 @@ def train_slrm(input_data_string: str, epsilon: float = EPSILON) -> Tuple[Dict[f
     original_points = _clean_and_sort_data(input_data_string)
     
     if len(original_points) < 2:
+        _prediction_cache = LRUCache(CACHE_SIZE)
         return {}, original_points, 0.0
         
     # 2. Lossless Compression (Geometric Invariance)
@@ -267,13 +302,13 @@ def train_slrm(input_data_string: str, epsilon: float = EPSILON) -> Tuple[Dict[f
     # 3. Lossy Compression (MRLS)
     final_model, max_error = _lossy_compression(initial_breakpoints_x, epsilon, original_points)
     
-    # Clear the prediction cache when training a new model
+    # Clear the prediction cache when training a new model (CRITICAL for new models)
     _prediction_cache = LRUCache(CACHE_SIZE)
     
     return final_model, original_points, max_error
 
 
-def predict_slrm(x_in: float, slrm_model: Dict[float, List[float]], original_points: List[Tuple[float, float]]) -> Dict[str, Any]:
+def predict_slrm(x_in: float, slrm_model: SLRMModel, original_points: List[Tuple[float, float]]) -> Dict[str, Any]:
     """
     Predicts the Y value for an input X using the compressed SLRM model.
     """
@@ -308,12 +343,12 @@ def predict_slrm(x_in: float, slrm_model: Dict[float, List[float]], original_poi
         for x_start in segment_starts:
             x_end = slrm_model[x_start][2] # X_end of the segment
             
+            # Use X_end of the segment. If x_in is equal to the last point, it falls into the max_x case above.
             if x_in >= x_start and x_in < x_end:
                 active_key = x_start
                 break
 
     if active_key is None:
-        # Should only happen if the data is a single point or unusual edge case not covered
         P, O = np.nan, np.nan
     else:
         P, O, _ = slrm_model[active_key]
@@ -334,7 +369,7 @@ def predict_slrm(x_in: float, slrm_model: Dict[float, List[float]], original_poi
     return result
 
 # ==============================================================================
-# EXAMPLE USAGE
+# 5. EXAMPLE USAGE
 # ==============================================================================
 
 if __name__ == "__main__":
@@ -359,7 +394,7 @@ if __name__ == "__main__":
 15, 8.5
 """
     
-    print("--- SLRM Training and Prediction Example (V5.8) ---")
+    print("--- SLRM Training and Prediction Example (V5.10b - Test Refinement) ---")
     
     # --------------------------------------------------------------------------
     # TEST 1: Lossy Compression (epsilon=0.5)
@@ -368,6 +403,7 @@ if __name__ == "__main__":
     print(f"\n[TEST 1] Training with Epsilon = {epsilon_test:.6f}")
     
     start_time = time.time()
+    # Note: train_slrm clears the cache automatically
     model, points, max_error = train_slrm(SAMPLE_DATA, epsilon_test)
     training_duration = time.time() - start_time
     
@@ -378,7 +414,7 @@ if __name__ == "__main__":
     print(f"Original Points: {len(points)}")
     print(f"Final Breakpoints: {breakpoint_count}")
     print(f"Segments Generated: {segment_count}")
-    print(f"Max Error Achieved: {max_error:.7f}")
+    print(f"Max Error Achieved: {max_error:.7f}") 
     
     print("\nModel Result (X_start: [P, O, X_end]):")
     for x_start, segment in model.items():
@@ -388,16 +424,28 @@ if __name__ == "__main__":
     # Prediction Test
     X_TEST_VALUES = [0.0, 5.5, 9.5, 15.0, 16.0]
     print("\nPrediction Test:")
+    
+    # Run 1: All Cache Misses (Populates Cache)
+    print("--- Run 1 (Populating Cache) ---")
     for x in X_TEST_VALUES:
         result = predict_slrm(x, model, points)
-        print(f"Predict X={result['x_in']:+.2f} | Y={result['y_pred']:+.6f} | Active Segment P={result['slope_P']:+.4f}")
-    
+        print(f"Predict X={result['x_in']:+.2f} | Y={result['y_pred']:+.6f} | Active Segment P={result['slope_P']:+.4f} | Cache: {'Hit' if result['cache_hit'] else 'Miss'}")
+
+    # Run 2: Cache Hits Expected
+    print("--- Run 2 (Testing Hits) ---")
+    for x in X_TEST_VALUES:
+        result = predict_slrm(x, model, points)
+        print(f"Predict X={result['x_in']:+.2f} | Y={result['y_pred']:+.6f} | Active Segment P={result['slope_P']:+.4f} | Cache: {'Hit' if result['cache_hit'] else 'Miss'}")
+        
+    print(f"\n[INFO] LRU Cache Status after Test 1 (Size: {len(_prediction_cache.cache)}/{CACHE_SIZE})")
+
     # --------------------------------------------------------------------------
     # TEST 2: Lossless Compression (epsilon=0)
     # --------------------------------------------------------------------------
     epsilon_zero = 0.0
     print(f"\n[TEST 2] Training with Epsilon = {epsilon_zero:.6f} (Enforcing Geometric Invariance)")
     
+    # train_slrm here clears the cache
     model_zero, _, max_error_zero = train_slrm(SAMPLE_DATA, epsilon_zero)
     
     segment_count_zero = sum(1 for P, O, X_end in model_zero.values() if not math.isnan(P))
@@ -405,9 +453,5 @@ if __name__ == "__main__":
     print(f"Segments Generated: {segment_count_zero}")
     print(f"Max Error Achieved: {max_error_zero:.7f} (Should be near zero)")
 
-    # Cache Test
-    x_cache_test = 5.5
-    predict_slrm(x_cache_test, model, points) # First call (miss)
-    cache_result = predict_slrm(x_cache_test, model, points) # Second call (hit)
-    print(f"\n[INFO] Cache Test (X={x_cache_test}): Hit={cache_result['cache_hit']}, Y={cache_result['y_pred']:+.6f}")
-    print(f"[INFO] LRU Cache Status (Size: {len(_prediction_cache.cache)}/{CACHE_SIZE})")
+    # Final Cache Status Check after reset by train_slrm
+    print(f"\n[INFO] LRU Cache Status after Test 2 Training (Cache reset by train_slrm): {len(_prediction_cache.cache)}/{CACHE_SIZE}")
