@@ -174,6 +174,8 @@ Las siguientes referencias conceptuales inspiran o contrastan con los principios
 
 ---
 
-Alex Kinetic
+Authors
 
-LICENCIA MIT
+Alex Kinetic and Logos
+
+Project under MIT License
