@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLRM-Logos Interactive Visualizer (V5.5)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- D3.js CDN for Visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .data-point { fill: #f87171; stroke: #b91c1c; stroke-width: 1.5px; }
+        .model-segment { stroke: #10b981; stroke-width: 3px; fill: none; }
+        .breakpoint { fill: #1e3a8a; stroke: #1e3a8a; stroke-width: 2px; }
+        .prediction-line { stroke: #3b82f6; stroke-dasharray: 5, 5; stroke-width: 2px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 sm:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">SLRM-Logos Interactive Visualizer <span class="text-sm font-light text-gray-500">(V5.5)</span></h1>
+            <p class="text-gray-600 mt-2">Segmented Linear Regression Model (MRLS Algorithm)</p>
+        </header>
+
+        <!-- Configuration and Metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Data Input -->
+            <div class="col-span-1 lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">1. Input Data (X, Y)</h2>
+                <textarea id="inputData" rows="10" class="w-full p-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-blue-500 focus:border-blue-500" placeholder="Enter data points (X, Y) separated by comma or space, one per line.">
+1, 1
+2, 1.5
+3, 1.7
+4, 3.5
+5, 5
+6, 4.8
+7, 4.5
+8, 4.3
+9, 4.1
+10, 4.2
+11, 4.3
+12, 4.6
+13, 5.5
+14, 7
+15, 8.5
+</textarea>
+                <p class="text-xs text-gray-500 mt-1">Example: <code>X, Y</code> or <code>X Y</code></p>
+            </div>
+
+            <!-- Controls and Parameters -->
+            <div class="col-span-1 lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">2. Configuration</h2>
+                <div class="mb-4">
+                    <label for="epsilon" class="block text-sm font-medium text-gray-700 mb-1">Error Tolerance (EPSILON, $\epsilon$)</label>
+                    <input type="number" id="epsilon" value="0.5" step="0.01" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <p class="text-xs text-gray-500 mt-1">Lower $\epsilon$ = More Segments (Higher Fidelity)</p>
+                </div>
+                
+                <button id="trainButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-blue-500/50">
+                    <svg id="loadingSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Train SLRM Model
+                </button>
+            </div>
+
+            <!-- Metrics -->
+            <div class="col-span-1 lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">3. Model Metrics</h2>
+                <div class="space-y-3 text-gray-700">
+                    <p class="flex justify-between">
+                        <span class="font-medium">Original Points:</span>
+                        <span id="metricPoints" class="font-bold text-gray-800">0</span>
+                    </p>
+                    <p class="flex justify-between">
+                        <span class="font-medium">Segments (Breakpoints):</span>
+                        <span id="metricSegments" class="font-bold text-green-600">0</span>
+                    </p>
+                    <p class="flex justify-between">
+                        <span class="font-medium">Compression Ratio:</span>
+                        <span id="metricRatio" class="font-bold text-blue-600">0.00%</span>
+                    </p>
+                    <p class="flex justify-between">
+                        <span class="font-medium">Max Error Achieved:</span>
+                        <span id="metricMaxError" class="font-bold text-red-600">N/A</span>
+                    </p>
+                </div>
+                <div id="predictionBox" class="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg hidden">
+                    <p class="text-sm font-semibold text-indigo-800">Click Prediction (X= <span id="predX"></span>)</p>
+                    <p class="text-lg font-bold text-indigo-900">Ŷ = <span id="predY"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Area -->
+        <div class="bg-white p-4 sm:p-6 rounded-xl shadow-xl border border-gray-200">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">4. Model Visualization (Click on chart for Prediction)</h2>
+            <div id="chartContainer" class="w-full h-[500px] overflow-hidden">
+                <svg id="slrmChart" class="w-full h-full"></svg>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- SLRM CORE LOGIC (JavaScript implementation of slrm-logos.py V5.5) ---
+
+        /**
+         * Cleans and sorts input data, handling duplicate X values by averaging Y.
+         * @param {string} dataString - Raw input string.
+         * @returns {Array<{x: number, y: number}>} Sorted, cleaned data array.
+         */
+        function _cleanAndSortData(dataString) {
+            const pointsMap = new Map();
+            const rawLines = dataString.split('\n');
+            
+            rawLines.forEach(line => {
+                const parts = line.trim().split(/[\s,]+/).map(p => parseFloat(p.trim()));
+                if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                    const x = parts[0];
+                    const y = parts[1];
+                    
+                    if (pointsMap.has(x)) {
+                        // Handle duplicates by averaging
+                        const current = pointsMap.get(x);
+                        current.y = (current.y * current.count + y) / (current.count + 1);
+                        current.count += 1;
+                    } else {
+                        pointsMap.set(x, { x: x, y: y, count: 1 });
+                    }
+                }
+            });
+
+            // Convert map to array and sort by X
+            const cleanedData = Array.from(pointsMap.values()).map(p => ({x: p.x, y: p.y}));
+            cleanedData.sort((a, b) => a.x - b.x);
+
+            return cleanedData;
+        }
+
+        /**
+         * Calculates Slope (P) and Intercept (O) for every adjacent segment.
+         * @param {Array<{x: number, y: number}>} data - Cleaned, sorted data.
+         * @returns {Map<number, number[]>} Initial model dictionary: {X_start: [P, O]}.
+         */
+        function _calculateOptimizedDict(data) {
+            const model = new Map();
+            for (let i = 0; i < data.length - 1; i++) {
+                const p1 = data[i];
+                const p2 = data[i+1];
+                
+                const P = (p2.y - p1.y) / (p2.x - p1.x); // Slope
+                const O = p1.y - P * p1.x; // Intercept
+
+                model.set(p1.x, [P, O, p2.x]); // [P, O, X_end]
+            }
+            // Add a marker for the final point
+            if (data.length > 0) {
+                model.set(data[data.length - 1].x, [NaN, NaN, NaN]);
+            }
+            return model;
+        }
+
+        /**
+         * Removes geometrically collinear breakpoints (Lossless Compression).
+         * @param {Map<number, number[]>} model - Optimized model dictionary.
+         * @returns {Map<number, number[]>} Lossless compressed model.
+         */
+        function _losslessCompression(model) {
+            const keys = Array.from(model.keys());
+            const newModel = new Map();
+
+            for (let i = 0; i < keys.length - 1; i++) {
+                const x_start = keys[i];
+                const x_mid = keys[i+1];
+                
+                const [P_start] = model.get(x_start);
+                const [P_mid] = model.get(x_mid) || [NaN]; // P for segment starting at x_mid
+
+                if (i === keys.length - 2) {
+                    // Last active segment
+                    newModel.set(x_start, model.get(x_start));
+                    break;
+                }
+
+                if (Math.abs(P_start - P_mid) < 1e-9) {
+                    // Collinear: skip x_mid. The segment starting at x_start now implicitly extends further.
+                } else {
+                    // Non-collinear: x_start is a critical breakpoint.
+                    newModel.set(x_start, model.get(x_start));
+                }
+            }
+
+            // Must recalculate P and O for the final segments that were extended.
+            const dataMap = new Map(data.map(p => [p.x, p.y]));
+            const finalKeys = Array.from(newModel.keys()).filter(x => !isNaN(x)); // Exclude the final NaN marker
+            
+            for (let i = 0; i < finalKeys.length; i++) {
+                const x_start = finalKeys[i];
+                const x_end = finalKeys[i+1] || keys[keys.length - 1]; // The next breakpoint or the very last point
+
+                const y_start = dataMap.get(x_start);
+                const y_end = dataMap.get(x_end);
+
+                if (y_start !== undefined && y_end !== undefined) {
+                    const P = (y_end - y_start) / (x_end - x_start);
+                    const O = y_start - P * x_start;
+                    newModel.set(x_start, [P, O, x_end]);
+                }
+            }
+            
+            // Re-add the final NaN marker
+            if (keys.length > 0) {
+                 newModel.set(keys[keys.length - 1], [NaN, NaN, NaN]);
+            }
+
+            return newModel;
+        }
+
+        /**
+         * Implements the Minimum Required Line Segments (MRLS) algorithm (Lossy Compression).
+         * @param {Map<number, number[]>} model - Lossless compressed model.
+         * @param {number} epsilon - Max allowed vertical interpolation error.
+         * @param {Array<{x: number, y: number}>} originalData - Original points (needed for error calculation).
+         * @returns {{finalModel: Map<number, number[]>, maxError: number}} Final compressed model and max error.
+         */
+        function _lossyCompression(model, epsilon, originalData) {
+            const dataKeys = originalData.map(d => d.x);
+            const dataMap = new Map(originalData.map(p => [p.x, p.y]));
+            const initialKeys = Array.from(model.keys()).filter(x => !isNaN(x)); // Breakpoints from lossless compression
+            
+            if (initialKeys.length < 2) {
+                return { finalModel: model, maxError: 0 };
+            }
+
+            const finalModel = new Map();
+            let i = 0; // Index of the starting breakpoint in initialKeys
+            let maxOverallError = 0;
+
+            while (i < initialKeys.length - 1) {
+                const x_start = initialKeys[i];
+                const y_start = dataMap.get(x_start);
+                
+                let j = i + 1; // Index of the candidate ending breakpoint
+
+                while (j < initialKeys.length) {
+                    const x_end_candidate = initialKeys[j];
+                    const y_end_candidate = dataMap.get(x_end_candidate);
+
+                    const P_test = (y_end_candidate - y_start) / (x_end_candidate - x_start);
+                    const O_test = y_start - P_test * x_start;
+
+                    let maxSegmentError = 0;
+                    let errorExceeded = false;
+                    
+                    // Check all original points between x_start and x_end_candidate
+                    const startIndex = dataKeys.indexOf(x_start);
+                    const endIndex = dataKeys.indexOf(x_end_candidate);
+
+                    for (let k = startIndex + 1; k < endIndex; k++) {
+                        const x_mid = originalData[k].x;
+                        const y_true_mid = originalData[k].y;
+                        
+                        const y_hat_mid = P_test * x_mid + O_test;
+                        const error = Math.abs(y_true_mid - y_hat_mid);
+
+                        maxSegmentError = Math.max(maxSegmentError, error);
+
+                        if (error > epsilon) {
+                            errorExceeded = true;
+                            break; 
+                        }
+                    }
+                    
+                    if (errorExceeded) {
+                        // The previous segment (ending at j-1) was the longest valid segment.
+                        const x_end = initialKeys[j - 1];
+                        const y_end = dataMap.get(x_end);
+                        
+                        // Recalculate P and O for the accepted segment (x_start to x_end)
+                        const P = (y_end - y_start) / (x_end - x_start);
+                        const O = y_start - P * x_start;
+                        
+                        finalModel.set(x_start, [P, O, x_end]);
+                        maxOverallError = Math.max(maxOverallError, maxSegmentError);
+                        
+                        i = j - 1; // Start the next search from the new endpoint
+                        break; 
+                    } else if (j === initialKeys.length - 1) {
+                        // Reached the very last point, this is the final segment.
+                        const x_end = initialKeys[j];
+                        const y_end = dataMap.get(x_end);
+                        
+                        const P = (y_end - y_start) / (x_end - x_start);
+                        const O = y_start - P * x_start;
+                        
+                        finalModel.set(x_start, [P, O, x_end]);
+                        maxOverallError = Math.max(maxOverallError, maxSegmentError);
+                        
+                        i = j; // Loop terminates
+                        break;
+                    }
+                    
+                    j++; // Try to extend the segment further
+                }
+            }
+
+            // Re-add the final NaN marker
+            if (dataKeys.length > 0) {
+                 finalModel.set(dataKeys[dataKeys.length - 1], [NaN, NaN, NaN]);
+            }
+
+            return { finalModel, maxError: maxOverallError };
+        }
+
+
+        /**
+         * Main training function (mimics slrm-logos.py:train_slrm).
+         * @param {string} dataString - Raw input data string.
+         * @param {number} epsilon - Error tolerance.
+         * @returns {{model: Map<number, number[]>, originalData: Array<{x: number, y: number}>, maxError: number}}
+         */
+        function train_slrm(dataString, epsilon) {
+            window.data = _cleanAndSortData(dataString);
+            if (window.data.length < 2) return { model: new Map(), originalData: window.data, maxError: 0 };
+            
+            // 1. Base Model (Optimization)
+            let model = _calculateOptimizedDict(window.data);
+            
+            // 2. Lossless Compression
+            model = _losslessCompression(model);
+
+            // 3. Lossy Compression (MRLS)
+            const result = _lossyCompression(model, epsilon, window.data);
+
+            return { model: result.finalModel, originalData: window.data, maxError: result.maxError };
+        }
+
+        /**
+         * Main prediction function (mimics slrm-logos.py:predict_slrm).
+         * @param {number} x_in - The input X value.
+         * @param {Map<number, number[]>} model - The trained SLRM model.
+         * @returns {{x_in: number, y_pred: number, slope_P: number, intercept_O: number}}
+         */
+        function predict_slrm(x_in, model) {
+            const keys = Array.from(model.keys()).filter(x => !isNaN(x));
+
+            if (keys.length === 0) {
+                return { x_in, y_pred: NaN, slope_P: NaN, intercept_O: NaN };
+            }
+
+            // Find the largest X_start key less than or equal to x_in
+            let activeKey = null;
+            for (let i = 0; i < keys.length; i++) {
+                if (keys[i] <= x_in) {
+                    activeKey = keys[i];
+                } else {
+                    break;
+                }
+            }
+
+            // Handle extrapolation: If x_in is before the first key
+            if (activeKey === null) {
+                activeKey = keys[0];
+            }
+
+            const [P, O] = model.get(activeKey) || [NaN, NaN];
+            
+            let y_pred = NaN;
+            if (!isNaN(P) && !isNaN(O)) {
+                y_pred = x_in * P + O;
+            }
+
+            return {
+                x_in,
+                y_pred,
+                slope_P: P,
+                intercept_O: O
+            };
+        }
+
+
+        // --- D3 VISUALIZATION AND INTERACTIVITY ---
+
+        const svg = d3.select("#slrmChart");
+        const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+        let width, height;
+        let xScale, yScale;
+        let trainedModel = null;
+        let originalPoints = [];
+        let modelKeys = [];
+
+        function updateDimensions() {
+            width = svg.node().clientWidth - margin.left - margin.right;
+            height = svg.node().clientHeight - margin.top - margin.bottom;
+        }
+
+        /**
+         * Renders the chart using D3.js.
+         */
+        function renderChart() {
+            updateDimensions();
+            svg.selectAll("*").remove(); // Clear previous chart content
+
+            if (originalPoints.length === 0) return;
+
+            // 1. Define Scales
+            const xExtent = d3.extent(originalPoints, d => d.x);
+            const yExtent = d3.extent(originalPoints, d => d.y);
+
+            // Add some padding to the domain
+            const xRange = xExtent[1] - xExtent[0];
+            const yRange = yExtent[1] - yExtent[0];
+
+            xScale = d3.scaleLinear()
+                .domain([xExtent[0] - xRange * 0.1, xExtent[1] + xRange * 0.1])
+                .range([0, width]);
+
+            yScale = d3.scaleLinear()
+                .domain([yExtent[0] - yRange * 0.1, yExtent[1] + yRange * 0.1])
+                .range([height, 0]);
+
+            // 2. Create Group Element
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+            // 3. Add Axes
+            g.append("g")
+                .attr("transform", `translate(0, ${height})`)
+                .call(d3.axisBottom(xScale));
+
+            g.append("g")
+                .call(d3.axisLeft(yScale));
+
+            // 4. Draw Model Segments
+            if (trainedModel) {
+                const segments = [];
+                const keys = Array.from(trainedModel.keys()).filter(x => !isNaN(x));
+                
+                for (let i = 0; i < keys.length - 1; i++) {
+                    const x_start = keys[i];
+                    const [P, O, x_end] = trainedModel.get(x_start);
+
+                    const y_start = P * x_start + O;
+                    const y_end = P * x_end + O;
+
+                    segments.push({
+                        x1: x_start,
+                        y1: y_start,
+                        x2: x_end,
+                        y2: y_end
+                    });
+                }
+
+                // Draw the segments
+                g.selectAll(".model-segment")
+                    .data(segments)
+                    .enter().append("line")
+                    .attr("class", "model-segment")
+                    .attr("x1", d => xScale(d.x1))
+                    .attr("y1", d => yScale(d.y1))
+                    .attr("x2", d => xScale(d.x2))
+                    .attr("y2", d => yScale(d.y2));
+
+                // Draw breakpoints
+                const breakpoints = segments.map(s => ({x: s.x1, y: s.y1})).concat({x: segments[segments.length - 1].x2, y: segments[segments.length - 1].y2});
+
+                g.selectAll(".breakpoint")
+                    .data(breakpoints)
+                    .enter().append("circle")
+                    .attr("class", "breakpoint")
+                    .attr("cx", d => xScale(d.x))
+                    .attr("cy", d => yScale(d.y))
+                    .attr("r", 4);
+            }
+
+            // 5. Draw Original Data Points
+            g.selectAll(".data-point")
+                .data(originalPoints)
+                .enter().append("circle")
+                .attr("class", "data-point")
+                .attr("cx", d => xScale(d.x))
+                .attr("cy", d => yScale(d.y))
+                .attr("r", 4);
+
+            // 6. Add interaction area for prediction
+            g.append("rect")
+                .attr("class", "overlay")
+                .attr("width", width)
+                .attr("height", height)
+                .style("fill", "none")
+                .style("pointer-events", "all")
+                .on("click", handlePredictionClick);
+        }
+
+        /**
+         * Handles the click event on the chart for interactive prediction.
+         */
+        function handlePredictionClick(event) {
+            if (!trainedModel) return;
+
+            const coords = d3.pointer(event);
+            const x_in_pixel = coords[0];
+            const y_in_pixel = coords[1];
+
+            const x_in_model = xScale.invert(x_in_pixel);
+            
+            const result = predict_slrm(x_in_model, trainedModel);
+            const y_pred = result.y_pred;
+
+            const predBox = d3.select("#predictionBox").classed('hidden', false);
+            d3.select("#predX").text(x_in_model.toFixed(3));
+            d3.select("#predY").text(isNaN(y_pred) ? 'N/A (Error)' : y_pred.toFixed(3));
+            
+            const g = svg.select("g");
+            g.selectAll(".prediction-line").remove();
+            
+            if (!isNaN(y_pred)) {
+                // Draw prediction lines
+                g.append("line")
+                    .attr("class", "prediction-line")
+                    .attr("x1", xScale(x_in_model))
+                    .attr("y1", height)
+                    .attr("x2", xScale(x_in_model))
+                    .attr("y2", yScale(y_pred));
+                
+                g.append("line")
+                    .attr("class", "prediction-line")
+                    .attr("x1", 0)
+                    .attr("y1", yScale(y_pred))
+                    .attr("x2", xScale(x_in_model))
+                    .attr("y2", yScale(y_pred));
+
+                g.append("circle")
+                    .attr("class", "prediction-line")
+                    .attr("cx", xScale(x_in_model))
+                    .attr("cy", yScale(y_pred))
+                    .attr("r", 6)
+                    .attr("fill", '#3b82f6');
+            }
+        }
+
+
+        /**
+         * Main function to handle training and UI updates.
+         */
+        document.getElementById('trainButton').addEventListener('click', async () => {
+            const button = document.getElementById('trainButton');
+            const spinner = document.getElementById('loadingSpinner');
+            
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            button.classList.add('opacity-70');
+
+            await new Promise(resolve => setTimeout(resolve, 50)); // Small delay for UI refresh
+
+            try {
+                const dataString = document.getElementById('inputData').value;
+                const epsilon = parseFloat(document.getElementById('epsilon').value);
+
+                if (isNaN(epsilon) || epsilon <= 0) {
+                    alert("Please enter a valid positive EPSILON value.");
+                    return;
+                }
+
+                // TRAIN MODEL
+                const trainResult = train_slrm(dataString, epsilon);
+                trainedModel = trainResult.model;
+                originalPoints = trainResult.originalData;
+                modelKeys = Array.from(trainedModel.keys()).filter(x => !isNaN(x));
+
+                const originalCount = originalPoints.length;
+                const segmentCount = modelKeys.length - 1; // Number of segments = Breakpoints - 1
+
+                // Update Metrics
+                document.getElementById('metricPoints').textContent = originalCount;
+                document.getElementById('metricSegments').textContent = segmentCount;
+                document.getElementById('metricMaxError').textContent = trainResult.maxError.toFixed(5);
+                
+                if (originalCount > 0) {
+                    const ratio = ((originalCount - segmentCount) / originalCount) * 100;
+                    document.getElementById('metricRatio').textContent = `${ratio.toFixed(2)}%`;
+                } else {
+                    document.getElementById('metricRatio').textContent = `0.00%`;
+                }
+
+                // Render the chart
+                renderChart();
+
+            } catch (error) {
+                console.error("Training failed:", error);
+                alert("An error occurred during training. Check input data format.");
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                button.classList.remove('opacity-70');
+            }
+        });
+
+        // Initialize on load and handle resize
+        window.addEventListener('load', () => {
+            document.getElementById('trainButton').click(); // Run initial training
+            window.addEventListener('resize', renderChart);
+        });
+
+        // Expose data globally for debugging/inspection (optional)
+        window.data = [];
+        window.trainedModel = null;
+    </script>
+
+</body>
+</html>
+  
