@@ -57,6 +57,6 @@ Los resultados confirman que el diseño SLRM es un enfoque óptimo para el model
 ---
 ### Recursos y Scripts de Referencia:
 
-* [Repositorio Principal del Proyecto (Carpeta ES)](https://github.com/akinetic/neural-network/es/)
+* [Repositorio Principal del Proyecto (Carpeta ES)](https://github.com/akinetic/neural-network/tree/main/es)
 * [Script SLRM de Producción (slrm-logos-es.py)](https://github.com/akinetic/neural-network/blob/main/es/slrm-logos-es.py)
 * [Script de Reporte de Rendimiento (slrm_reporte_rendimiento.py)](https://github.com/akinetic/neural-network/blob/main/es/slrm_reporte_rendimiento.py)
