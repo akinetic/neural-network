@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- CHANGE: Version number updated to V5.8 -->
-    <title>SLRM-Logos Interactive Visualizer (V5.8)</title>
+    <meta name="author" content="Alex Kinetic and Logos">
+    <title>SLRM-Logos Interactive Visualizer (V5.10b)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- D3.js CDN for Visualization -->
@@ -13,34 +13,20 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
-        /* New styles for the data points */
-        .eliminated-point { fill: #ef4444; stroke: #b91c1c; stroke-width: 1.5px; } /* Red: Eliminated/intermediate points */
+        /* Point Coloring: Preferred D3 scheme (V5.8) */
+        .eliminated-point { fill: #f87171; stroke: #ef4444; stroke-width: 1.5px; opacity: 0.8; } /* Red/Pink: Eliminated/intermediate points */
         .breakpoint-point { fill: #3b82f6; stroke: #1e3a8a; stroke-width: 1.5px; } /* Blue: Maintained/breakpoint points */
 
         .model-segment { stroke: #10b981; stroke-width: 3px; fill: none; }
-        .breakpoint { fill: #1e3a8a; stroke: #1e3a8a; stroke-width: 2px; } /* Breakpoint markers (small circles) */
+        
+        /* Prediction/Interactivity Styles */
         .prediction-line { stroke: #3b82f6; stroke-dasharray: 5, 5; stroke-width: 2px; }
         
-        /* Style for custom alert/message box */
-        .message-box {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 15px 30px;
-            background-color: #fefcbf; /* Yellow warning background */
-            border: 2px solid #facc15;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            max-width: 90%;
-            text-align: center;
-            opacity: 1;
-            transition: opacity 0.5s ease;
-        }
-        .message-box.hidden {
-            display: none;
-            opacity: 0;
+        /* Responsive layout for Prediction input group - Custom for full width button */
+        .prediction-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
     </style>
 </head>
@@ -48,15 +34,15 @@
 
     <div class="max-w-7xl mx-auto">
         <header class="text-center mb-8">
-            <!-- CHANGE: Version number updated to V5.8 -->
-            <h1 class="text-4xl font-bold text-gray-800">SLRM-Logos Interactive Visualizer <span class="text-sm font-light text-gray-500">(V5.8)</span></h1>
-            <p class="text-gray-600 mt-2">Segmented Linear Regression Model (MRLS Algorithm with Geometric Invariance)</p>
+            <h1 class="text-4xl font-bold text-gray-800">SLRM-Logos Interactive Visualizer</h1>
+            <p class="text-gray-600 mt-2">Segmented Linear Regression Model (SLRM with Geometric Invariance) <span class="text-gray-500">(Version 5.10b)</span></p>
         </header>
 
-        <!-- Configuration and Metrics -->
-        <div class="grid grid-cols-1 lg:col-cols-3 gap-6 mb-8">
-            <!-- Data Input -->
-            <div class="col-span-1 lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        <!-- Configuration, Data, Metrics, and Prediction in a 4-column responsive grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            
+            <!-- 1. Data Input -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                 <h2 class="text-xl font-semibold mb-3 text-gray-700">1. Input Data (X, Y)</h2>
                 <textarea id="inputData" rows="10" class="w-full p-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-blue-500 focus:border-blue-500" placeholder="Enter data points (X, Y) separated by comma or space, one per line.">
 1, 1
@@ -78,14 +64,14 @@
                 <p class="text-xs text-gray-500 mt-1">Example: <code>X, Y</code> or <code>X Y</code></p>
             </div>
 
-            <!-- Controls and Parameters -->
-            <div class="col-span-1 lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <!-- 2. Model Configuration -->
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                 <h2 class="text-xl font-semibold mb-3 text-gray-700">2. Configuration</h2>
-                <div class="mb-4">
+                <div class="mb-6">
                     <label for="epsilon" class="block text-sm font-medium text-gray-700 mb-1">Error Tolerance (Epsilon, &epsilon;)</label>
-                    <!-- Default value remains 0.50 -->
-                    <input type="number" id="epsilon" value="0.50" step="0.000001" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    <p class="text-xs text-gray-500 mt-1">If &epsilon; = 0, only Geometric Invariance is applied.</p>
+                    <!-- Default value set to 0.5 (simple) -->
+                    <input type="text" id="epsilon" value="0.5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-center font-mono">
+                    <p class="text-xs text-gray-500 mt-1">Defines the model's accuracy.</p>
                 </div>
                 
                 <button id="trainButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-blue-500/50">
@@ -94,16 +80,16 @@
                 </button>
             </div>
 
-            <!-- Metrics -->
-            <div class="col-span-1 lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-                <h2 class="text-xl font-semibold mb-3 text-gray-700">3. Model Metrics</h2>
-                <div class="space-y-3 text-gray-700">
+            <!-- 3. Metrics -->
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">3. Metrics</h2>
+                <div id="metrics-result" class="space-y-3 text-gray-700">
                     <p class="flex justify-between">
-                        <span class="font-medium">Original Points:</span>
+                        <span class="font-medium">Unique Points:</span>
                         <span id="metricPoints" class="font-bold text-gray-800">0</span>
                     </p>
                     <p class="flex justify-between">
-                        <span class="font-medium">Segments (Breakpoints):</span>
+                        <span class="font-medium">Final Segments:</span>
                         <span id="metricSegments" class="font-bold text-green-600">0</span>
                     </p>
                     <p class="flex justify-between">
@@ -111,96 +97,86 @@
                         <span id="metricRatio" class="font-bold text-blue-600">0.00%</span>
                     </p>
                     <p class="flex justify-between">
-                        <span class="font-medium">Max Error Achieved:</span>
+                        <span class="font-medium">Training Time:</span>
+                        <span id="metricTime" class="font-bold text-purple-600">N/A</span>
+                    </p>
+                    <p class="flex justify-between">
+                        <span class="font-medium">Max Achieved Error:</span>
+                        <!-- Max error is displayed with 6 decimal places for precision -->
                         <span id="metricMaxError" class="font-bold text-red-600">N/A</span>
                     </p>
                 </div>
-                <div id="predictionBox" class="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg hidden">
-                    <p class="text-sm font-semibold text-indigo-800">Click Prediction (X= <span id="predX"></span>)</p>
-                    <p class="text-lg font-bold text-indigo-900">Ŷ = <span id="predY"></span></p>
+            </div>
+            
+            <!-- 4. Dedicated Prediction Test (New Section) -->
+            <div class="sm:col-span-2 lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">4. Prediction Test</h2>
+                <div class="prediction-input-container">
+                    <div>
+                        <label for="x-test-input" class="block text-sm font-medium text-gray-700 mb-1">X Value to Predict</label>
+                        <!-- Default value set to 7.5 (simple) -->
+                        <input type="text" id="x-test-input" value="7.5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 text-center font-mono">
+                    </div>
+                    <!-- Button is now full width and below the input -->
+                    <button id="predictButton" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 shadow-md">
+                        Predict
+                    </button>
+                </div>
+
+                <div id="prediction-result" class="mt-4 p-3 text-sm rounded-lg text-gray-700">
+                    <div class="flex flex-col space-y-3 text-left">
+                        <!-- Prediction results are displayed with 6 decimal places -->
+                        <span class="flex justify-between">
+                            <span class="font-medium">Y (Prediction):</span> <span class="font-bold text-green-700">N/A</span>
+                        </span>
+                        <span class="flex justify-between">
+                            <span class="font-medium">P (Slope):</span> <span class="font-bold">N/A</span>
+                        </span>
+                        <span class="flex justify-between">
+                            <span class="font-medium">O (Intercept):</span> <span class="font-bold">N/A</span>
+                        </span>
+                    </div>
                 </div>
             </div>
+
         </div>
 
         <!-- Visualization Area -->
         <div class="bg-white p-4 sm:p-6 rounded-xl shadow-xl border border-gray-200">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700">4. Model Visualization (Click on chart for Prediction)</h2>
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Model Visualization (Click on chart for Prediction)</h2>
             <div id="chartContainer" class="w-full h-[500px] overflow-hidden">
                 <svg id="slrmChart" class="w-full h-full"></svg>
+            </div>
+            <!-- Legend (Alineación vertical perfecta) -->
+            <div class="p-3 mt-4 bg-gray-100 rounded-lg text-sm flex flex-wrap justify-around gap-4">
+                <p class="flex items-center"><span class="inline-block w-3 h-3 bg-blue-500 rounded-full align-middle mr-1"></span> Critical Points</p>
+                <p class="flex items-center"><span class="inline-block w-3 h-3 bg-red-400 rounded-full align-middle mr-1"></span> Excluded Points</p>
+                <p class="flex items-center"><span class="inline-block w-4 h-0.5 bg-green-500 align-middle mr-1"></span> SLRM Segments</p>
+                <p class="flex items-center"><span class="inline-block w-4 h-0.5 border-dashed border-red-500 align-middle mr-1 border"></span> Error Bands (&plusmn;&epsilon;)</p>
             </div>
         </div>
     </div>
 
-    <!-- Custom Message Box for errors/warnings -->
-    <div id="customMessageBox" class="message-box hidden">
-        <p id="messageText" class="text-lg font-semibold text-gray-900 mb-0"></p>
-    </div>
-
     <script>
-        // --- UTILITY FUNCTIONS ---
+        // --- SLRM CORE LOGIC (V5.10b) ---
+
+        // PRECISION CONSTANT FOR FLOATING POINT ARITHMETIC
+        const FLOAT_TOLERANCE = 1e-9; 
+        let originalPoints = []; 
+        let trainedModel = null;
         
-        /**
-         * Shows a persistent error message (requires user click to close).
-         */
-        function showPersistentMessage(text) {
-            const msgBox = document.getElementById('customMessageBox');
-            document.getElementById('messageText').textContent = text;
-            msgBox.classList.remove('hidden');
-            // Change background for error
-            msgBox.style.backgroundColor = '#fee2e2'; 
-            msgBox.style.borderColor = '#ef4444';
-            // Add a close button for persistent messages
-            let closeBtn = msgBox.querySelector('button');
-            if (!closeBtn) {
-                closeBtn = document.createElement('button');
-                // TRANSLATION: 'Cerrar' -> 'Close'
-                closeBtn.textContent = 'Close';
-                closeBtn.onclick = () => msgBox.classList.add('hidden');
-                closeBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg mt-3';
-                msgBox.appendChild(closeBtn);
-            }
-        }
-        
-        /**
-         * Shows a temporary warning message that disappears after 3 seconds.
-         */
-        function showTimedMessage(text) {
-            const msgBox = document.getElementById('customMessageBox');
-            document.getElementById('messageText').textContent = text;
-            msgBox.classList.remove('hidden');
-            
-            // Remove close button if present
-            let closeBtn = msgBox.querySelector('button');
-            if (closeBtn) {
-                msgBox.removeChild(closeBtn);
-            }
-
-            // Restore warning styles
-            msgBox.style.backgroundColor = '#fefcbf';
-            msgBox.style.borderColor = '#facc15';
-
-            // Automatically hide after 3 seconds
-            setTimeout(() => {
-                msgBox.classList.add('hidden');
-            }, 3000); 
-        }
-
-        // Utility function to yield control back to the UI thread (prevents freezing)
+        // Utility to yield control to the main thread (prevents UI freezing)
         const yieldControl = () => new Promise(resolve => setTimeout(resolve, 0));
 
-        // --- SLRM CORE LOGIC (V5.8) ---
-
-        /** Global variable to store original points for boundary checks */
-        let originalPoints = []; 
+        // --- DATA PROCESSING ---
 
         /**
-         * Cleans and sorts input data, handling duplicate X values by averaging Y.
+         * Cleans and sorts data, handling X duplicates by averaging Y.
          */
         function _cleanAndSortData(dataString) {
             const pointsMap = new Map();
-            const rawLines = dataString.split('\n');
             
-            rawLines.forEach(line => {
+            dataString.split('\n').forEach(line => {
                 const parts = line.trim().split(/[\s,]+/).map(p => parseFloat(p.trim()));
                 if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
                     const x = parts[0];
@@ -222,89 +198,122 @@
             return cleanedData;
         }
 
+        // --- COMPRESSION LOGIC (Lossless: Geometric Invariance) ---
+
         /**
-         * Removes geometrically collinear breakpoints (Lossless Compression - Geometric Invariance).
-         * Returns an array of critical X-breakpoints (subset of original X-values).
+         * Performs lossless compression by identifying non-collinear points
+         * (slope changes).
          */
         function _losslessCompression(data) {
-            if (data.length < 3) return data.map(d => d.x);
+            if (data.length < 2) return data.map(d => d.x);
 
-            const criticalX = [data[0].x]; // The first point is always a critical breakpoint (X_start)
+            const criticalX = [data[0].x]; 
             
             for (let i = 1; i < data.length - 1; i++) {
-                const p0 = data[i - 1]; // Previous point
-                const p1 = data[i];     // Point being tested for redundancy (X_mid)
-                const p2 = data[i + 1]; // Next point
+                const p0 = data[i - 1]; 
+                const p1 = data[i];     
+                const p2 = data[i + 1]; 
 
                 const dX_a = p1.x - p0.x;
                 const dX_b = p2.x - p1.x;
                 
-                if (dX_a === 0 || dX_b === 0) continue; 
+                // If dX is zero (or insignificant), include the point
+                if (Math.abs(dX_a) < FLOAT_TOLERANCE || Math.abs(dX_b) < FLOAT_TOLERANCE) {
+                    criticalX.push(p1.x); 
+                    continue; 
+                }
 
                 const P_a = (p1.y - p0.y) / dX_a; 
                 const P_b = (p2.y - p1.y) / dX_b; 
 
-                // Check for collinearity (Geometric Invariance). Use tolerance 1e-9.
-                if (Math.abs(P_a - P_b) > 1e-9) {
+                // Collinearity check.
+                if (Math.abs(P_a - P_b) > FLOAT_TOLERANCE) {
                     criticalX.push(p1.x);
                 }
             }
 
-            // The last point is always a critical point (end of data)
-            criticalX.push(data[data.length - 1].x);
+            if (data.length > 1) {
+                criticalX.push(data[data.length - 1].x);
+            }
 
             return Array.from(new Set(criticalX));
         }
 
+        // --- COMPRESSION LOGIC (Lossy / SLRM) ---
+        
         /**
-         * Implements the Minimum Required Line Segments (MRLS) algorithm (Lossy Compression).
+         * Calculates the maximum error of a segment against the real intermediate points.
+         */
+        function _calculateSegmentMaxError(xS, xE, P, O, dataKeys, data) {
+            if (isNaN(P)) return 0.0;
+                
+            const startIndex = dataKeys.indexOf(xS);
+            const endIndex = dataKeys.indexOf(xE);
+            let maxErr = 0.0;
+            
+            // Iterate ONLY over strictly intermediate points
+            for (let k = startIndex + 1; k < endIndex; k++) { 
+                const xMid = data[k].x;
+                const yTrueMid = data[k].y;
+                
+                const yHatMid = P * xMid + O;
+                const error = Math.abs(yTrueMid - yHatMid);
+                
+                maxErr = Math.max(maxErr, error);
+            }
+            return maxErr;
+        }
+
+
+        /**
+         * Applies the lossy compression using the SLRM algorithm.
          */
         async function _lossyCompression(initialKeys, epsilon, data) {
             const dataKeys = data.map(d => d.x);
             const dataMap = new Map(data.map(p => [p.x, p.y]));
             
-            if (initialKeys.length < 2) {
-                return { finalModel: new Map(), maxError: 0 };
-            }
-
-            // Use epsilon directly. If epsilon is 0, the safeEpsilon for comparison will be 1e-12 
-            // to prevent issues with strict floating point arithmetic inside the loop, 
-            // ensuring only perfect collinearity passes if epsilon is 0.
+            if (initialKeys.length < 2) return { finalModel: new Map(), maxError: 0 };
+            
+            const finalModel = new Map();
+            let i = 0; 
+            let maxOverallError = 0;
+            // Use 1e-12 for epsilon=0
             const safeEpsilon = Math.max(epsilon, 1e-12); 
 
-            const finalModel = new Map();
-            let i = 0; // Index of the starting breakpoint in initialKeys
-            let maxOverallError = 0;
-
-            // MRLS Loop
+            // i: index of the start point (x_start) in initialKeys
             while (i < initialKeys.length - 1) {
                 
                 const x_start = initialKeys[i];
                 const y_start = dataMap.get(x_start);
                 
-                let j = i + 1; // Index of the candidate ending breakpoint (x_end_candidate)
+                let j = i + 1; // index of the candidate end point (x_end_candidate) in initialKeys
 
                 while (j < initialKeys.length) {
                     
-                    if ((j - (i + 1)) % 5 === 0) { 
-                        await yieldControl();
-                    }
+                    // Yield control to the UI every few iterations
+                    if ((j - (i + 1)) % 10 === 0) { await yieldControl(); } 
 
                     const x_end_candidate = initialKeys[j];
                     const y_end_candidate = dataMap.get(x_end_candidate);
 
                     const dX = x_end_candidate - x_start;
-                    if (dX === 0) { j++; continue; } 
+                    
+                    // If the change in X is zero (or insignificant) or NaN, jump to the next candidate.
+                    if (isNaN(dX) || Math.abs(dX) < FLOAT_TOLERANCE) { 
+                        j++; 
+                        continue; 
+                    } 
 
+                    // Slope (P) and Intercept (O) for the candidate segment
                     const P_test = (y_end_candidate - y_start) / dX;
                     const O_test = y_start - P_test * x_start;
 
-                    let currentMaxError = 0; 
                     let errorExceeded = false;
                     
                     const startIndex = dataKeys.indexOf(x_start);
                     const endIndex = dataKeys.indexOf(x_end_candidate);
 
+                    // Check all *intermediate* points
                     for (let k = startIndex + 1; k < endIndex; k++) {
                         const x_mid = data[k].x;
                         const y_true_mid = data[k].y;
@@ -312,57 +321,45 @@
                         const y_hat_mid = P_test * x_mid + O_test;
                         const error = Math.abs(y_true_mid - y_hat_mid);
 
-                        currentMaxError = Math.max(currentMaxError, error);
-
-                        // Use the user-defined epsilon for the threshold check, 
-                        // falling back to a tiny number if epsilon is 0 to enforce precision.
-                        if (error > epsilon && error > 1e-12) { 
+                        if (error > safeEpsilon) { 
                             errorExceeded = true;
                             break; 
                         }
                     }
                     
                     if (errorExceeded) {
-                        // Segment failed at index j. Commit the previous valid segment (i -> j-1).
+                        // The segment failed. The valid line ends at the previous point (j-1).
                         const x_end_committed = initialKeys[j - 1];
                         const y_end_committed = dataMap.get(x_end_committed);
                         
-                        // Recalculate P and O for the COMMITTED segment
                         const dX_committed = x_end_committed - x_start;
                         const P = dX_committed === 0 ? 0 : (y_end_committed - y_start) / dX_committed;
                         const O = y_start - P * x_start;
                         
+                        // Save segment: [Slope, Intercept, X_End]
                         finalModel.set(x_start, [P, O, x_end_committed]);
                         
-                        // Calculate the actual max error of the segment committed
-                        let committedMaxError = 0;
-                        const committedStartIndex = dataKeys.indexOf(x_start);
-                        const committedEndIndex = dataKeys.indexOf(x_end_committed);
-                        for (let k = committedStartIndex + 1; k < committedEndIndex; k++) {
-                            const x_mid = data[k].x;
-                            const y_true_mid = data[k].y;
-                            const y_hat_mid = P * x_mid + O;
-                            committedMaxError = Math.max(committedMaxError, Math.abs(y_true_mid - y_hat_mid));
-                        }
-                        
+                        const committedMaxError = _calculateSegmentMaxError(x_start, x_end_committed, P, O, dataKeys, data);
                         maxOverallError = Math.max(maxOverallError, committedMaxError);
 
-                        i = j - 1; // Next segment starts at j-1
+                        i = j - 1; // The next segment starts where the previous one ended.
                         break; 
                         
                     } else if (j === initialKeys.length - 1) {
-                        // Reached the very last point, this is the final segment (i -> j) and it passed.
+                        // Last point reached and passed the test.
                         const x_end = initialKeys[j];
                         const y_end = dataMap.get(x_end);
                         
                         const dX = x_end - x_start;
                         const P = dX === 0 ? 0 : (y_end - y_start) / dX; 
                         const O = y_start - P * x_start;
-                        
+                            
                         finalModel.set(x_start, [P, O, x_end]);
-                        maxOverallError = Math.max(maxOverallError, currentMaxError);
                         
-                        i = j; // Loop terminates
+                        const finalMaxError = _calculateSegmentMaxError(x_start, x_end, P, O, dataKeys, data);
+                        maxOverallError = Math.max(maxOverallError, finalMaxError);
+                        
+                        i = j; // Ends the outer loop
                         break;
                     }
                     
@@ -370,9 +367,10 @@
                 }
             }
 
-            // Re-add the final NaN marker if the loop terminated without adding the last point as a key
+            // Final marker for the last point
             const lastKey = initialKeys[initialKeys.length - 1];
             if (lastKey !== undefined && !finalModel.has(lastKey)) {
+                 // Use [NaN, NaN, NaN] for end points that are not segment starts
                  finalModel.set(lastKey, [NaN, NaN, NaN]);
             }
 
@@ -380,29 +378,31 @@
         }
 
 
+        // --- MAIN TRAINING AND PREDICTION ---
+
         /**
-         * Main training function (slrm-logos.py:train_slrm).
+         * Main function to train the SLRM model.
          */
         async function train_slrm(dataString, epsilon) {
             originalPoints = _cleanAndSortData(dataString);
             if (originalPoints.length < 2) return { model: new Map(), originalData: originalPoints, maxError: 0 };
             
-            // 1. Lossless Compression (Geometric Invariance)
             const initialBreakpoints = _losslessCompression(originalPoints);
             
-            // 2. Lossy Compression (MRLS)
             await yieldControl();
             const result = await _lossyCompression(initialBreakpoints, epsilon, originalPoints);
 
             return { model: result.finalModel, originalData: originalPoints, maxError: result.maxError };
         }
 
+
         /**
-         * Main prediction function (slrm-logos.py:predict_slrm).
+         * Performs a Y prediction for a given X value using the trained model.
          */
         function predict_slrm(x_in, model) {
             const keys = Array.from(model.entries())
-                .filter(([x_start, [P]]) => !isNaN(P))
+                // Filter only entries that are valid segment starts (have Slope P)
+                .filter(([x_start, [P]]) => !isNaN(P)) 
                 .map(([x_start]) => x_start); 
             keys.sort((a, b) => a - b); 
 
@@ -416,36 +416,34 @@
             let activeKey = null;
 
             if (x_in < dataMinX) {
-                // Extrapolation to the left: use the first segment
+                // Extrapolation before data range: use the first segment
                 activeKey = keys[0];
             } else if (x_in >= dataMaxX) {
-                // Extrapolation to the right: use the last segment
+                // Extrapolation after data range: use the last segment
                 activeKey = keys[keys.length - 1]; 
             } else {
-                // Interpolation: find the segment where x_start <= x_in < x_end
+                // Interpolation: find the segment where x_in falls
                 for (let i = 0; i < keys.length; i++) {
                     const x_start = keys[i];
-                    const x_end = model.get(x_start)[2]; // Get x_end from the model
+                    const x_end = model.get(x_start)[2]; // x_end is the 3rd element in the segment array
                     
-                    // We check x_in >= x_start AND x_in is less than the segment's end. 
+                    // Check if x_in is in [x_start, x_end)
                     if (x_in >= x_start && x_in < x_end) { 
                         activeKey = x_start;
                         break;
                     }
                 }
-                
-                // Fallback for the very last data point if the loop above missed it
+                // Fallback for the last segment if x_in is exactly the last breakpoint (x_max)
                 if (activeKey === null) {
-                    for (let i = 0; i < keys.length; i++) {
-                        if (keys[i] <= x_in) {
-                            activeKey = keys[i];
-                        } else {
-                            break;
-                        }
-                    }
+                    activeKey = keys[keys.length - 1];
                 }
             }
+            
+            if (activeKey === undefined) {
+                 return { x_in, y_pred: NaN, slope_P: NaN, intercept_O: NaN };
+            }
 
+            // [P, O, x_end]
             const [P, O] = model.get(activeKey) || [NaN, NaN];
             
             let y_pred = NaN;
@@ -461,14 +459,12 @@
             };
         }
 
-
         // --- D3 VISUALIZATION AND INTERACTIVITY ---
 
         const svg = d3.select("#slrmChart");
         const margin = { top: 20, right: 30, bottom: 40, left: 50 };
         let width, height;
         let xScale, yScale;
-        let trainedModel = null;
 
         function updateDimensions() {
             width = svg.node().clientWidth - margin.left - margin.right;
@@ -478,11 +474,20 @@
         /**
          * Renders the chart using D3.js.
          */
-        function renderChart() {
+        function renderChart(epsilon) {
             updateDimensions();
             svg.selectAll("*").remove(); // Clear previous chart content
 
-            if (originalPoints.length === 0) return;
+            if (originalPoints.length < 2 || !trainedModel) {
+                svg.append("text")
+                   .attr("x", width / 2 + margin.left)
+                   .attr("y", height / 2 + margin.top)
+                   .attr("text-anchor", "middle")
+                   .attr("fill", "#94a3b8")
+                   .style("font-size", "20px")
+                   .text("Train the model to visualize the data."); // Translated
+                return;
+            }
 
             // 1. Define Scales
             const xExtent = d3.extent(originalPoints, d => d.x);
@@ -491,12 +496,17 @@
             const xRange = xExtent[1] - xExtent[0];
             const yRange = yExtent[1] - yExtent[0];
 
+            // Use a margin of 10% of the range on both sides
+            const xMargin = xRange * 0.1;
+            const yMargin = yRange * 0.1;
+
             xScale = d3.scaleLinear()
-                .domain([xExtent[0] - xRange * 0.1, xExtent[1] + xRange * 0.1])
+                .domain([xExtent[0] - xMargin, xExtent[1] + xMargin])
                 .range([0, width]);
 
             yScale = d3.scaleLinear()
-                .domain([yExtent[0] - yRange * 0.1, yExtent[1] + yRange * 0.1])
+                // Must account for epsilon in the Y domain for band visibility
+                .domain([yExtent[0] - yMargin - epsilon, yExtent[1] + yMargin + epsilon]) 
                 .range([height, 0]);
 
             // 2. Create Group Element
@@ -511,65 +521,65 @@
             g.append("g")
                 .call(d3.axisLeft(yScale));
 
-            // 4. Draw Model Segments & Breakpoint Markers
-            let breakpointXSet = new Set();
-            if (trainedModel) {
-                const segments = [];
-                const keys = Array.from(trainedModel.keys()).filter(x => {
-                    const segment = trainedModel.get(x);
-                    return segment && !isNaN(segment[0]);
-                }); 
-                
-                for (let i = 0; i < keys.length; i++) {
-                    const x_start = keys[i];
-                    const [P, O, x_end] = trainedModel.get(x_start);
+            // 4. Draw Error Bands (if epsilon > 0)
+            if (epsilon > 1e-6) {
+                const area = d3.area()
+                    .x(d => xScale(d.x))
+                    .y0(d => yScale(d.y - epsilon))
+                    .y1(d => yScale(d.y + epsilon))
+                    .curve(d3.curveLinear); 
 
-                    // Collect breakpoints for later data point coloring
-                    breakpointXSet.add(x_start);
-
-                    if (!isNaN(P) && x_end) {
-                        const y_start = P * x_start + O;
-                        const y_end = P * x_end + O;
-                        
-                        // Collect endpoint
-                        breakpointXSet.add(x_end);
-
-                        segments.push({
-                            x1: x_start,
-                            y1: y_start,
-                            x2: x_end,
-                            y2: y_end
-                        });
-                    }
-                }
-
-                // Draw the segments
-                g.selectAll(".model-segment")
-                    .data(segments)
-                    .enter().append("line")
-                    .attr("class", "model-segment")
-                    .attr("x1", d => xScale(d.x1))
-                    .attr("y1", d => yScale(d.y1))
-                    .attr("x2", d => xScale(d.x2))
-                    .attr("y2", d => yScale(d.y2));
-
-                // Draw breakpoint markers (small dark blue circles only on the segment ends)
-                const breakpoints = Array.from(breakpointXSet).map(x => {
-                    // Find the corresponding Y value from the original points
-                    let y = originalPoints.find(p => p.x === x)?.y;
-                    return {x, y};
-                }).filter(p => p.y !== undefined);
-                
-                g.selectAll(".breakpoint")
-                    .data(breakpoints)
-                    .enter().append("circle")
-                    .attr("class", "breakpoint")
-                    .attr("cx", d => xScale(d.x))
-                    .attr("cy", d => yScale(d.y))
-                    .attr("r", 4);
+                g.append("path")
+                    .datum(originalPoints)
+                    .attr("fill", "rgba(252, 165, 165, 0.2)") 
+                    .attr("stroke", "#f87171") 
+                    .attr("stroke-width", 1)
+                    .attr("d", area);
             }
 
-            // 5. Draw Original Data Points (Colored by status)
+
+            // 5. Draw Model Segments & Breakpoint Markers
+            let breakpointXSet = new Set();
+            const segments = [];
+            
+            const keys = Array.from(trainedModel.keys()).filter(x => {
+                const segment = trainedModel.get(x);
+                return segment && !isNaN(segment[0]);
+            }); 
+            
+            for (let i = 0; i < keys.length; i++) {
+                const x_start = keys[i];
+                // Segment data: [P, O, x_end]
+                const [P, O, x_end] = trainedModel.get(x_start); 
+
+                breakpointXSet.add(x_start);
+
+                if (!isNaN(P) && x_end) {
+                    const y_start = P * x_start + O;
+                    const y_end = P * x_end + O;
+                    
+                    breakpointXSet.add(x_end);
+
+                    segments.push({
+                        x1: x_start,
+                        y1: y_start,
+                        x2: x_end,
+                        y2: y_end
+                    });
+                }
+            }
+
+            // Draw the segments
+            g.selectAll(".model-segment")
+                .data(segments)
+                .enter().append("line")
+                .attr("class", "model-segment")
+                .attr("x1", d => xScale(d.x1))
+                .attr("y1", d => yScale(d.y1))
+                .attr("x2", d => xScale(d.x2))
+                .attr("y2", d => yScale(d.y2));
+
+            // Draw Original Data Points (Colored by status)
             g.selectAll(".original-point")
                 .data(originalPoints)
                 .enter().append("circle")
@@ -578,6 +588,25 @@
                 .attr("cy", d => yScale(d.y))
                 .attr("r", 4);
 
+
+            // Draw breakpoint markers (small dark blue circles only on the segment ends)
+            const breakpoints = Array.from(breakpointXSet).map(x => {
+                // Find the original Y value for the breakpoint X
+                let y = originalPoints.find(p => Math.abs(p.x - x) < FLOAT_TOLERANCE)?.y;
+                return {x, y};
+            }).filter(p => p.y !== undefined);
+            
+            g.selectAll(".breakpoint")
+                .data(breakpoints)
+                .enter().append("circle")
+                .attr("class", "breakpoint")
+                .attr("cx", d => xScale(d.x))
+                .attr("cy", d => yScale(d.y))
+                .attr("r", 4.5)
+                .attr("fill", "transparent")
+                .attr("stroke", "#1e3a8a")
+                .attr("stroke-width", 2);
+
             // 6. Add interaction area for prediction
             g.append("rect")
                 .attr("class", "overlay")
@@ -585,154 +614,236 @@
                 .attr("height", height)
                 .style("fill", "none")
                 .style("pointer-events", "all")
-                .on("click", handlePredictionClick);
+                .on("click", (event) => handlePredictionClick(event, true)); 
         }
 
         /**
-         * Handles the click event on the chart for interactive prediction.
+         * Handles prediction from the button or chart click.
          */
-        function handlePredictionClick(event) {
-            if (!trainedModel || originalPoints.length === 0) {
-                // TRANSLATION: 'El modelo no ha sido entrenado o los datos son insuficientes.'
-                showPersistentMessage("The model has not been trained or the data is insufficient.");
-                return;
+        function updatePrediction(x_in, isChartClick) {
+            // Check if model is ready or input is valid
+            if (!trainedModel || originalPoints.length === 0 || isNaN(x_in)) {
+                // If input is NaN and not a chart click, do nothing (keep previous results).
+                if (!isChartClick && isNaN(x_in)) {
+                    return; 
+                }
             }
 
-            const coords = d3.pointer(event);
-            const x_in_pixel = coords[0];
-
-            const x_in_model = xScale.invert(x_in_pixel);
-            
-            const result = predict_slrm(x_in_model, trainedModel);
+            const result = predict_slrm(x_in, trainedModel);
             const y_pred = result.y_pred;
 
-            const predBox = d3.select("#predictionBox").classed('hidden', false);
-            d3.select("#predX").text(x_in_model.toFixed(3));
-            // Display prediction with 6 decimal places for high precision
-            d3.select("#predY").text(isNaN(y_pred) ? 'N/A (Error)' : y_pred.toFixed(6));
+            let isPredictionVisible = false;
+
+            // CRITICAL: Only draw prediction if it is visible within the D3 scales/domain.
+            if (xScale && yScale) {
+                const [minX, maxX] = xScale.domain();
+                const [minY, maxY] = yScale.domain();
+
+                // Check if the prediction point falls within the current visual domain
+                if (x_in >= minX && x_in <= maxX && y_pred >= minY && y_pred <= maxY) {
+                    isPredictionVisible = true;
+                }
+            } 
             
+            // Output values (Y, P, O) are consistently displayed with 6 decimal places.
+            const predText = isNaN(y_pred) ? 'N/A' : y_pred.toFixed(6); 
+            const P_text = isNaN(result.slope_P) ? 'N/A' : result.slope_P.toFixed(6); 
+            const O_text = isNaN(result.intercept_O) ? 'N/A' : result.intercept_O.toFixed(6); 
+            
+            // If it was a chart click, update the input box with the X value, limited to 6 decimals
+            if (isChartClick) {
+                // Limit the X input update to 6 decimals for cleaner display
+                document.getElementById('x-test-input').value = x_in.toFixed(6); 
+            }
+            
+            // Update the prediction results display (Section 4) - Translated labels
+            document.getElementById('prediction-result').innerHTML = `
+                <div class="flex flex-col space-y-3 text-left">
+                    <span class="flex justify-between">
+                        <span class="font-medium">Y (Prediction):</span> <span class="font-bold text-green-700">${predText}</span>
+                    </span>
+                    <span class="flex justify-between">
+                        <span class="font-medium">P (Slope):</span> <span class="font-bold">${P_text}</span>
+                    </span>
+                    <span class="flex justify-between">
+                        <span class="font-medium">O (Intercept):</span> <span class="font-bold">${O_text}</span>
+                    </span>
+                </div>
+            `;
+            
+            // Draw prediction lines only if prediction is a number AND VISIBLE on the chart
             const g = svg.select("g");
             g.selectAll(".prediction-line").remove();
             
-            if (!isNaN(y_pred)) {
-                // Draw prediction lines
-                g.append("line")
-                    .attr("class", "prediction-line")
-                    .attr("x1", xScale(x_in_model))
-                    .attr("y1", height)
-                    .attr("x2", xScale(x_in_model))
-                    .attr("y2", yScale(y_pred));
-                
-                g.append("line")
-                    .attr("class", "prediction-line")
-                    .attr("x1", 0)
-                    .attr("y1", yScale(y_pred))
-                    .attr("x2", xScale(x_in_model))
-                    .attr("y2", yScale(y_pred));
+            if (!isNaN(y_pred) && isPredictionVisible) {
+                // Check if scales exist before drawing
+                if (xScale && yScale) {
+                    g.append("line")
+                        .attr("class", "prediction-line")
+                        .attr("x1", xScale(x_in))
+                        .attr("y1", height)
+                        .attr("x2", xScale(x_in))
+                        .attr("y2", yScale(y_pred));
+                    
+                    g.append("line")
+                        .attr("class", "prediction-line")
+                        .attr("x1", 0)
+                        .attr("y1", yScale(y_pred))
+                        .attr("x2", xScale(x_in))
+                        .attr("y2", yScale(y_pred));
 
-                g.append("circle")
-                    .attr("class", "prediction-line")
-                    .attr("cx", xScale(x_in_model))
-                    .attr("cy", yScale(y_pred))
-                    .attr("r", 6)
-                    .attr("fill", '#3b82f6');
+                    g.append("circle")
+                        .attr("class", "prediction-line")
+                        .attr("cx", xScale(x_in))
+                        .attr("cy", yScale(y_pred))
+                        .attr("r", 6)
+                        .attr("fill", '#3b82f6');
+                }
             }
         }
 
+        function handlePredictionClick(event) {
+            const coords = d3.pointer(event);
+            const x_in_pixel = coords[0];
+            const x_in_model = xScale.invert(x_in_pixel);
+            updatePrediction(x_in_model, true);
+        }
 
-        /**
-         * Main function to handle training and UI updates.
-         */
+        document.getElementById('predictButton').addEventListener('click', () => {
+            const xTestInput = document.getElementById('x-test-input').value;
+            const xTest = parseFloat(xTestInput); 
+
+            if (isNaN(xTest)) {
+                // If input is NaN, the updatePrediction will handle the N/A output.
+                return;
+            }
+            updatePrediction(xTest, false);
+        });
+
+
+        // --- MAIN HANDLER ---
+
         document.getElementById('trainButton').addEventListener('click', async () => {
             const button = document.getElementById('trainButton');
             const spinner = document.getElementById('loadingSpinner');
             
+            // Lock UI
             button.disabled = true;
             spinner.classList.remove('hidden');
             button.classList.add('opacity-70');
 
-            await yieldControl(); // Initial yield to show spinner immediately
+            await yieldControl();
 
             try {
                 const inputElement = document.getElementById('epsilon');
                 const rawValue = inputElement.value.trim();
                 let epsilon = parseFloat(rawValue);
 
-                // Validation
                 if (isNaN(epsilon) || epsilon < 0) {
-                    // TRANSLATION: 'Por favor, introduce un valor de Epsilon válido y no negativo.'
-                    showPersistentMessage("Please enter a valid and non-negative Epsilon value.");
-                    return;
+                    console.error("Error: Epsilon must be a valid non-negative number.");
+                    // The UI text is already English, keeping this console error in English.
+                    return; 
                 }
-
-                // SANITIZATION/NORMALIZATION: Force the input value to the exact parsed float value 
-                // with high precision. This removes all redundant zeros (012 -> 12.000000, .5 -> 0.500000)
-                // and fixes precision issues in the display.
-                inputElement.value = epsilon.toFixed(6); 
-
                 
-                // TRAIN MODEL - Await the asynchronous training
-                const trainResult = await train_slrm(document.getElementById('inputData').value, epsilon);
+                const dataString = document.getElementById('inputData').value;
+                
+                // Start timer
+                const startTime = performance.now(); 
+                
+                const trainResult = await train_slrm(dataString, epsilon);
+                
+                // Stop timer and calculate elapsed time
+                const endTime = performance.now(); 
+                const elapsedTime = (endTime - startTime) / 1000; // Time in seconds
+                
                 trainedModel = trainResult.model;
 
-                const originalCount = originalPoints.length;
+                const originalCount = originalPoints.length; // Unique and clean points
                 
-                // Count the number of active segments
+                // Count valid segments
                 const segmentCount = Array.from(trainedModel.keys()).filter(x => {
                     const segment = trainedModel.get(x);
                     return segment && !isNaN(segment[0]);
                 }).length;
 
                 // Update Metrics
-                document.getElementById('metricPoints').textContent = originalCount;
+                document.getElementById('metricPoints').textContent = originalCount; 
                 document.getElementById('metricSegments').textContent = segmentCount;
-                // Display max error with 7 decimal places for high precision
-                document.getElementById('metricMaxError').textContent = trainResult.maxError.toFixed(7);
+                // Max Error is displayed with 6 decimal places.
+                document.getElementById('metricMaxError').textContent = trainResult.maxError.toFixed(6); 
+                document.getElementById('metricTime').textContent = `${elapsedTime.toFixed(4)} s`; // Update Training Time
                 
                 
-                // Compression Ratio Calculation
                 if (originalCount > 0) {
-                    // Determine the unique set of X values that form the breakpoints of the final model
+                    // Count final breakpoints for compression ratio
                     const finalBreakpointKeys = new Set();
                     for (const [x_start, segment] of trainedModel.entries()) {
                         const [P, O, x_end] = segment;
+                        // Add x_start if it is a valid segment start
                         if (!isNaN(P)) {
                             finalBreakpointKeys.add(x_start);
-                            if (x_end) finalBreakpointKeys.add(x_end);
+                        }
+                        // Add x_end if it exists and is valid
+                        if (x_end && !isNaN(x_end)) {
+                            // Check if the end point exists in the original points for existence assurance
+                            const exists = originalPoints.some(p => Math.abs(p.x - x_end) < FLOAT_TOLERANCE);
+                            if (exists) {
+                                finalBreakpointKeys.add(x_end);
+                            }
                         }
                     }
                     const numBreakpoints = finalBreakpointKeys.size;
-
-                    // Compression ratio = (Eliminated Points / Original Points) * 100
+                    
                     const eliminatedCount = originalCount - numBreakpoints;
-                    const ratio = (eliminatedCount / originalCount) * 100;
+                    const ratio = (originalCount > 0) ? (eliminatedCount / originalCount) * 100 : 0;
                     document.getElementById('metricRatio').textContent = `${ratio.toFixed(2)}%`;
+
+                    // Initial prediction
+                    const xTest = parseFloat(document.getElementById('x-test-input').value);
+                    if (!isNaN(xTest)) {
+                        updatePrediction(xTest, false);
+                    }
                 } else {
+                    // Reset prediction result structure (Translated labels)
+                    document.getElementById('prediction-result').innerHTML = `
+                        <div class="flex flex-col space-y-3 text-left">
+                            <span class="font-medium">Y (Prediction):</span> <span class="font-bold text-green-700">N/A</span>
+                            <span class="font-medium">P (Slope):</span> <span class="font-bold">N/A</span>
+                            <span class="font-medium">O (Intercept):</span> <span class="font-bold">N/A</span>
+                        </div>
+                    `;
                     document.getElementById('metricRatio').textContent = `0.00%`;
                 }
 
-
                 // Render the chart
-                renderChart();
+                renderChart(epsilon);
 
             } catch (error) {
                 console.error("Training failed:", error);
-                // TRANSLATION: 'Ocurrió un error durante el entrenamiento. Revisa el formato de los datos de entrada o el valor de Epsilon. Detalles del error en la consola.'
-                showPersistentMessage("An error occurred during training. Check the input data format or the Epsilon value. See console for error details.");
             } finally {
+                // Unlock UI
                 button.disabled = false;
                 spinner.classList.add('hidden');
                 button.classList.remove('opacity-70');
             }
         });
 
-        // Initialize on load and handle resize
+        // Initial setup on load
         window.addEventListener('load', () => {
-            document.getElementById('trainButton').click(); // Run initial training
-            window.addEventListener('resize', renderChart);
+            // Trigger the initial training on page load (uses default data)
+            document.getElementById('trainButton').click(); 
+            window.addEventListener('resize', () => {
+                // Parse the value from the text input
+                const epsilon = parseFloat(document.getElementById('epsilon').value || 0);
+                renderChart(epsilon);
+                // Parse the value from the text input
+                const xTest = parseFloat(document.getElementById('x-test-input').value); 
+                if (!isNaN(xTest)) {
+                    updatePrediction(xTest, false);
+                }
+            });
         });
 
     </script>
-
 </body>
 </html>
