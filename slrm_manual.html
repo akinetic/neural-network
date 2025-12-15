@@ -96,13 +96,27 @@ result = predict_slrm(x_test, final_model, original_points)
 print(f"Prediction for X={result['x_in']}: Y={result['y_pred']:.4f}")
 print(f"Active Segment: P={result['slope_P']:.4f}, O={result['intercept_O']:.4f}")
 print(f"Cache Hit: {result['cache_hit']}") # Muestra si la predicción vino del caché</code></pre>
-
-        <h3 style="margin-top: 40px;">Project Files</h3>
-        <ul>
-            <li><code>slrm-logos.py</code>: The main source code containing the training and prediction logic (<strong>V5.10b</strong>).</li>
-            <li><code>slrm_manual.html</code> (Content in this file): This technical manual (<strong>V5.10b</strong>).</li>
-            <li><code>slrm_visualizer.html</code>: The web application for visualization (<strong>V5.10b</strong>).</li>
-        </ul>
+        <!-- GitHub Links -->
+        <footer class="mt-12 pt-6 border-t border-gray-300">
+            <h3 class="text-xl font-semibold mb-3 text-blue-700">Resources and Reference Scripts:</h3>
+            <ul class="space-y-2 text-gray-500">
+                <li>
+                    <a href="https://github.com/akinetic/neural-network/" target="_blank" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out font-medium">
+                        &#9993; Main Project Repository
+                    </a>
+                </li>
+                <li>
+                    <a href="https://github.com/akinetic/neural-network/blob/main/slrm-logos.py" target="_blank" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out font-medium">
+                        &#x1F4BB; Production SLRM Script (slrm-logos.py)
+                    </a>
+                </li>
+                <li>
+                    <a href="https://github.com/akinetic/neural-network/blob/main/slrm_performance_report.html" target="_blank" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out font-medium">
+                        &#x1F4C4; Performance Report Script (slrm_performance_report.html)
+                    </a>
+                </li>
+            </ul>
+        </footer>
     </div>
 </body>
 </html>
