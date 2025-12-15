@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Alex Kinetic and Logos">
     <title>SLRM Manual Técnico (V5.10b)</title>
     <style>
         /* Estilos base para el manual técnico */
@@ -96,13 +97,27 @@ result = predict_slrm(x_test, final_model, original_points)
 print(f"Predicción para X={result['x_in']}: Y={result['y_pred']:.4f}")
 print(f"Segmento Activo: P={result['slope_P']:.4f}, O={result['intercept_O']:.4f}")
 print(f"Cache Hit: {result['cache_hit']}") # Muestra si la predicción provino de la caché</code></pre>
-
-        <h3 style="margin-top: 40px;">Archivos del Proyecto</h3>
-        <ul>
-            <li><code>slrm-logos.py</code>: El código fuente principal que contiene la lógica de entrenamiento y predicción (<strong>V5.10b</strong>).</li>
-            <li><code>slrm_manual_es.html</code> (Contenido en este archivo): Este manual técnico (<strong>V5.10b</strong>).</li>
-            <li><code>slrm_visualizador.html</code>: La aplicación web para visualización (<strong>V5.10b</strong>).</li>
-        </ul>
+        <!-- Enlaces de GitHub -->
+        <footer class="mt-12 pt-6 border-t border-gray-300">
+            <h3 class="text-xl font-semibold mb-3 text-blue-700">Recursos y Scripts de Referencia:</h3>
+            <ul class="space-y-2 text-gray-500">
+                <li>
+                    <a href="https://github.com/akinetic/neural-network/tree/main/es" target="_blank" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out font-medium">
+                        &#9993; Repositorio Principal del Proyecto (Carpeta ES)
+                    </a>
+                </li>
+                <li>
+                    <a href="https://github.com/akinetic/neural-network/blob/main/es/slrm-logos-es.py" target="_blank" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out font-medium">
+                        &#x1F4BB; Script SLRM de Producción (slrm-logos-es.py)
+                    </a>
+                </li>
+                <li>
+                    <a href="https://akinetic.github.io/neural-network/es/slrm_reporte_rendimiento.html" target="_blank" class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out font-medium">
+                        &#x1F4C4; Reporte de Rendimiento y Eficiencia (slrm_reporte_rendimiento.html)
+                    </a>
+                </li>
+            </ul>
+        </footer>   
     </div>
 </body>
 </html>
