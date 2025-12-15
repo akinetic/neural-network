@@ -182,7 +182,7 @@ Project Files
 
 [slrm_manual.html](https://akinetic.github.io/neural-network/slrm_manual.html)  : (Content in this file): This technical manual (V5.10b).
 
-[slrm_visualizer.html](https://akinetic.github.io/neural-network/slrm_visualizer.html) : The web application for visualization (Using previous logic - Not updated).
+[slrm_visualizer.html](https://akinetic.github.io/neural-network/slrm_visualizer.html) : The web application for visualization (V5.10b).
 
 ---
 
