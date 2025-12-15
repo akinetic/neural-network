@@ -178,12 +178,12 @@ Archivos del Proyecto
 
 [readme-demo](https://akinetic.github.io/neural-network) : La aplicación web para la visualización.
 
-[slrm-logos.py](../slrm-logos.py) : 
+[slrm-logos.py](slrm-logos.py) : 
 El código fuente principal que contiene la lógica de entrenamiento y predicción (V5.10b).
 
 [slrm_manual.html](https://akinetic.github.io/neural-network/slrm_manual.html)  : (Contenido de este archivo): Este manual técnico (V5.10b).
 
-[slrm_visualizer.html](https://akinetic.github.io/neural-network/slrm_visualizer.html) : La aplicación web para la visualización (Utiliza lógica anterior - No actualizado).
+[slrm_visualizer.html](https://akinetic.github.io/neural-network/es/slrm_visualizador.html) : La aplicación web para la visualización (V5.10b).
 
 ---
 
