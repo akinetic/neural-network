@@ -739,12 +739,14 @@
                 const rawValue = inputElement.value.trim();
                 let epsilon = parseFloat(rawValue);
 
+                // --- NEW VALIDATION AND AUTOCORRECTION LOGIC ---
                 if (isNaN(epsilon) || epsilon < 0) {
-                    console.error("Error: Epsilon must be a valid non-negative number.");
-                    // The UI text is already English, keeping this console error in English.
-                    return; 
+                    // Autocorrect to 0 and update the input field visibly
+                    epsilon = 0; 
+                    inputElement.value = '0'; 
                 }
-                
+                // --- END NEW LOGIC ---
+
                 const dataString = document.getElementById('inputData').value;
                 
                 // Start timer
@@ -833,8 +835,8 @@
             // Trigger the initial training on page load (uses default data)
             document.getElementById('trainButton').click(); 
             window.addEventListener('resize', () => {
-                // Parse the value from the text input
-                const epsilon = parseFloat(document.getElementById('epsilon').value || 0);
+                // Parse the value from the text input. Autocorrection logic runs in the main handler.
+                const epsilon = parseFloat(document.getElementById('epsilon').value || 0); 
                 renderChart(epsilon);
                 // Parse the value from the text input
                 const xTest = parseFloat(document.getElementById('x-test-input').value); 
