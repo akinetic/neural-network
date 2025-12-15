@@ -1,254 +1,338 @@
 /**
- * SLRM-LOGOS (V5.10b) - Módulo JavaScript para Regresión Lineal Segmentada.
- * Implementación del algoritmo determinista Logos Core para Compresión de Conocimiento.
- * * Autores: Alex Kinetic and Logos
+ * @fileoverview Algoritmo Central SLRM-LOGOS (V5.10b)
+ * Un Modelo de Regresión Lineal Segmentada (SLRM) implementado en JavaScript/Node.js puro.
+ * Este módulo proporciona funciones para el entrenamiento y la predicción utilizando el algoritmo Logos Core.
+ * Las funciones son síncronas y están diseñadas para entornos de cómputo (Node.js/Workers).
+ * @author Alex Kinetic and Logos
+ * Dependencias: Ninguna.
  */
 
-// --- FUNCIONES AUXILIARES DE COMPRESIÓN ---
+// --- LÓGICA CENTRAL SLRM (V5.10b) ---
+
+// CONSTANTE DE PRECISIÓN PARA ARITMÉTICA DE PUNTO FLOTANTE
+const TOLERANCIA_FLOTANTE = 1e-9;
+
+// --- PROCESAMIENTO DE DATOS ---
 
 /**
- * Limpia y ordena los datos de entrada, manejando duplicados de X promediando sus valores Y.
- * @param {Array<Array<number>>} data - Array de puntos [[x, y], ...].
- * @returns {Array<{x: number, y: number}>} - Array de puntos limpios y ordenados.
+ * Limpia y ordena los datos, manejando los duplicados de X promediando Y.
+ * @param {string} dataString - Los datos de entrada como una cadena (ej., "x1, y1\nx2, y2").
+ * @returns {Array<Object>} - Un array de puntos {x: number, y: number} limpios y ordenados.
  */
-function _cleanAndSortData(data) {
-    const map = new Map();
-    
-    // 1. Agrupar Y por X para manejar duplicados (promediado)
-    data.forEach(([x, y]) => {
-        if (!map.has(x)) {
-            map.set(x, { sum: 0, count: 0 });
+function _limpiarYOrdenarDatos(dataString) {
+    const mapaPuntos = new Map();
+
+    dataString.split('\n').forEach(linea => {
+        // Soporta varios separadores (espacio, coma)
+        const partes = linea.trim().split(/[\s,]+/).map(p => parseFloat(p.trim()));
+        if (partes.length >= 2 && !isNaN(partes[0]) && !isNaN(partes[1])) {
+            const x = partes[0];
+            const y = partes[1];
+
+            if (mapaPuntos.has(x)) {
+                // Manejar valores X duplicados promediando Y
+                const actual = mapaPuntos.get(x);
+                actual.y = (actual.y * actual.count + y) / (actual.count + 1);
+                actual.count += 1;
+            } else {
+                mapaPuntos.set(x, { x: x, y: y, count: 1 });
+            }
         }
-        const entry = map.get(x);
-        entry.sum += y;
-        entry.count++;
     });
 
-    const cleanPoints = Array.from(map.keys()).map(x => ({
-        x,
-        y: map.get(x).sum / map.get(x).count
-    }));
+    const datosLimpios = Array.from(mapaPuntos.values()).map(p => ({x: p.x, y: p.y}));
+    // Ordenar por valor X
+    datosLimpios.sort((a, b) => a.x - b.x);
 
-    // 2. Ordenar por X
-    cleanPoints.sort((a, b) => a.x - b.x);
-
-    return cleanPoints;
+    return datosLimpios;
 }
 
+// --- LÓGICA DE COMPRESIÓN (Sin Pérdida: Invarianza Geométrica) ---
+
 /**
- * Realiza compresión sin pérdida: elimina puntos colineales (Invarianza Geométrica).
- * @param {Array<{x: number, y: number}>} points - Puntos limpios y ordenados.
- * @returns {Array<{x: number, y: number}>} - Puntos clave (breakpoints) sin colinealidad.
+ * Realiza compresión sin pérdida identificando puntos no colineales
+ * (cambios de pendiente). Estos forman los "Breakpoints Base".
+ * @param {Array<Object>} datos - Los datos limpios y ordenados.
+ * @returns {Array<number>} - Un array de valores X para los breakpoints críticos.
  */
-function _losslessCompression(points) {
-    if (points.length <= 2) return points;
+function _compresionSinPerdida(datos) {
+    if (datos.length < 2) return datos.map(d => d.x);
 
-    const breakpoints = [points[0]];
-    let startPoint = points[0];
-    const EPS = 1e-9; // Pequeña tolerancia para la comparación de flotantes
+    const xCriticos = [datos[0].x];
 
-    for (let i = 1; i < points.length - 1; i++) {
-        const midPoint = points[i];
-        const endPoint = points[i + 1];
+    for (let i = 1; i < datos.length - 1; i++) {
+        const p0 = datos[i - 1];
+        const p1 = datos[i];
+        const p2 = datos[i + 1];
 
-        // Calcular pendientes
-        const deltaX1 = midPoint.x - startPoint.x;
-        const deltaY1 = midPoint.y - startPoint.y;
-        const deltaX2 = endPoint.x - midPoint.x;
-        const deltaY2 = endPoint.y - midPoint.y;
+        const dX_a = p1.x - p0.x;
+        const dX_b = p2.x - p1.x;
 
-        let slope1, slope2;
+        // Manejar segmentos verticales o dX insignificante
+        if (Math.abs(dX_a) < TOLERANCIA_FLOTANTE || Math.abs(dX_b) < TOLERANCIA_FLOTANTE) {
+            xCriticos.push(p1.x);
+            continue;
+        }
 
-        // Manejo de pendientes infinitas (verticales)
-        if (Math.abs(deltaX1) < EPS) slope1 = Infinity;
-        else slope1 = deltaY1 / deltaX1;
-        
-        if (Math.abs(deltaX2) < EPS) slope2 = Infinity;
-        else slope2 = deltaY2 / deltaX2;
-        
-        // Si las pendientes son diferentes, hay un quiebre.
-        if (Math.abs(slope1 - slope2) > EPS || (slope1 === Infinity && slope2 !== Infinity) || (slope1 !== Infinity && slope2 === Infinity)) {
-            breakpoints.push(midPoint);
-            startPoint = midPoint;
+        const P_a = (p1.y - p0.y) / dX_a;
+        const P_b = (p2.y - p1.y) / dX_b;
+
+        // Verificación de colinealidad: si las pendientes son diferentes más allá de la tolerancia, es un punto crítico.
+        if (Math.abs(P_a - P_b) > TOLERANCIA_FLOTANTE) {
+            xCriticos.push(p1.x);
         }
     }
-    // Siempre añadir el último punto
-    breakpoints.push(points[points.length - 1]);
-    return breakpoints;
-}
 
-/**
- * Realiza compresión con pérdida (MRLS): Segmentos de Línea Mínimos Requeridos.
- * Extiende segmentos hasta que el error de interpolación exceda epsilon.
- * @param {Array<{x: number, y: number}>} breakpoints - Puntos clave de la compresión sin pérdida.
- * @param {number} epsilon - Tolerancia de error máxima.
- * @returns {{model: Object, maxError: number}} - Modelo final y error máximo alcanzado.
- */
-function _lossyCompression(breakpoints, epsilon) {
-    if (breakpoints.length <= 1) {
-        return { model: {}, maxError: 0 };
+    if (datos.length > 1) {
+        xCriticos.push(datos[datos.length - 1].x);
     }
 
-    const finalModel = {};
-    let currentMaxError = 0;
-    let i = 0; // Índice del punto inicial del segmento
+    // Asegurar unicidad (aunque la lógica debe minimizar duplicados)
+    return Array.from(new Set(xCriticos));
+}
 
-    while (i < breakpoints.length - 1) {
-        let start = breakpoints[i];
-        let j = i + 1; // Índice del punto final potencial del segmento
+// --- LÓGICA DE COMPRESIÓN (Con Pérdida / SLRM) ---
 
-        // Extender el segmento lo más posible (algoritmo MRLS)
-        while (j < breakpoints.length) {
-            let end = breakpoints[j];
-            let segmentMaxError = 0;
-            let P, O;
+/**
+ * Calcula el error máximo de un segmento comprometido contra todos
+ * los puntos de datos intermedios reales.
+ */
+function _calcularErrorMaximoSegmento(xS, xE, P, O, clavesDatos, datos) {
+    if (isNaN(P)) return 0.0;
 
-            // 1. Calcular la línea (Pendiente P y Intercepto O)
-            if (end.x === start.x) { 
-                P = Infinity;
-                O = NaN;
-            } else {
-                P = (end.y - start.y) / (end.x - start.x);
-                O = start.y - P * start.x;
+    const indiceInicio = clavesDatos.indexOf(xS);
+    const indiceFin = clavesDatos.indexOf(xE);
+    let maxError = 0.0;
+
+    // Iterar SOLAMENTE sobre puntos estrictamente intermedios
+    for (let k = indiceInicio + 1; k < indiceFin; k++) {
+        const xMedio = datos[k].x;
+        const yVerdaderoMedio = datos[k].y;
+
+        const yEstimadoMedio = P * xMedio + O;
+        const error = Math.abs(yVerdaderoMedio - yEstimadoMedio);
+
+        maxError = Math.max(maxError, error);
+    }
+    return maxError;
+}
+
+
+/**
+ * Aplica la compresión con pérdida utilizando el algoritmo SLRM (MRLS).
+ * @param {Array<number>} clavesIniciales - Valores X de la compresión sin pérdida (breakpoints).
+ * @param {number} epsilon - La tolerancia de error máxima permitida.
+ * @param {Array<Object>} datos - Los datos originales limpios y ordenados.
+ * @returns {Object} - { modeloFinal: Map<number, Array<number>>, maxError: number }
+ * modeloFinal: Mapa donde la clave es X_inicio, el valor es [Pendiente P, Intercepto O, X_fin].
+ */
+function _compresionConPerdida(clavesIniciales, epsilon, datos) {
+    const clavesDatos = datos.map(d => d.x);
+    const mapaDatos = new Map(datos.map(p => [p.x, p.y]));
+
+    if (clavesIniciales.length < 2) return { modeloFinal: new Map(), maxError: 0 };
+
+    const modeloFinal = new Map();
+    let i = 0; // Índice del punto inicial del segmento (x_inicio) en clavesIniciales
+    let maxErrorGeneral = 0;
+    // Usar 1e-12 para epsilon=0 para evitar división por cero en verificaciones de error
+    const epsilonSeguro = Math.max(epsilon, 1e-12);
+
+    while (i < clavesIniciales.length - 1) {
+
+        const x_inicio = clavesIniciales[i];
+        const y_inicio = mapaDatos.get(x_inicio);
+
+        let j = i + 1; // Índice del punto final candidato (x_fin_candidato) en clavesIniciales
+
+        while (j < clavesIniciales.length) {
+
+            const x_fin_candidato = clavesIniciales[j];
+            const y_fin_candidato = mapaDatos.get(x_fin_candidato);
+
+            const dX = x_fin_candidato - x_inicio;
+
+            if (isNaN(dX) || Math.abs(dX) < TOLERANCIA_FLOTANTE) {
+                j++;
+                continue;
             }
 
-            // 2. Verificar el error de todos los puntos intermedios [i+1, j]
-            let isWithinTolerance = true;
-            for (let k = i + 1; k <= j; k++) {
-                let midPoint = breakpoints[k];
-                let y_pred = P * midPoint.x + O;
-                let error = Math.abs(midPoint.y - y_pred);
+            // Calcular el segmento candidato: Pendiente (P) e Intercepto (O)
+            const P_prueba = (y_fin_candidato - y_inicio) / dX;
+            const O_prueba = y_inicio - P_prueba * x_inicio;
 
-                if (error > epsilon) {
-                    isWithinTolerance = false;
+            let errorExcedido = false;
+
+            const indiceInicio = clavesDatos.indexOf(x_inicio);
+            const indiceFin = clavesDatos.indexOf(x_fin_candidato);
+
+            // Verificar todos los puntos *intermedios* contra Epsilon
+            for (let k = indiceInicio + 1; k < indiceFin; k++) {
+                const x_medio = datos[k].x;
+                const y_verdadero_medio = datos[k].y;
+
+                const y_estimado_medio = P_prueba * x_medio + O_prueba;
+                const error = Math.abs(y_verdadero_medio - y_estimado_medio);
+
+                if (error > epsilonSeguro) {
+                    errorExcedido = true;
                     break;
                 }
-                segmentMaxError = Math.max(segmentMaxError, error);
             }
 
-            if (isWithinTolerance) {
-                // El segmento se puede extender hasta el punto j.
-                currentMaxError = Math.max(currentMaxError, segmentMaxError);
-                j++; // Intenta incluir el siguiente punto
-            } else {
-                // El punto j excedió el error. El segmento finaliza en j-1.
-                j--; 
+            if (errorExcedido) {
+                // El segmento falló. Comprometer el segmento anterior (j-1).
+                const x_fin_comprometido = clavesIniciales[j - 1];
+                const y_fin_comprometido = mapaDatos.get(x_fin_comprometido);
+
+                const dX_comprometido = x_fin_comprometido - x_inicio;
+                // Evitar división por cero para P si dX está cerca de cero
+                const P = dX_comprometido === 0 ? 0 : (y_fin_comprometido - y_inicio) / dX_comprometido;
+                const O = y_inicio - P * x_inicio;
+
+                // Guardar segmento: [Pendiente P, Intercepto O, X_Fin]
+                modeloFinal.set(x_inicio, [P, O, x_fin_comprometido]);
+
+                const maxErrorComprometido = _calcularErrorMaximoSegmento(x_inicio, x_fin_comprometido, P, O, clavesDatos, datos);
+                maxErrorGeneral = Math.max(maxErrorGeneral, maxErrorComprometido);
+
+                i = j - 1; // El siguiente segmento comienza donde terminó el anterior.
+                break;
+
+            } else if (j === clavesIniciales.length - 1) {
+                // Se alcanzó el último punto y pasó la prueba. Comprometer el segmento final.
+                const x_fin = clavesIniciales[j];
+                const y_fin = mapaDatos.get(x_fin);
+
+                const dX = x_fin - x_inicio;
+                const P = dX === 0 ? 0 : (y_fin - y_inicio) / dX;
+                const O = y_inicio - P * x_inicio;
+
+                modeloFinal.set(x_inicio, [P, O, x_fin]);
+
+                const maxErrorFinal = _calcularErrorMaximoSegmento(x_inicio, x_fin, P, O, clavesDatos, datos);
+                maxErrorGeneral = Math.max(maxErrorGeneral, maxErrorFinal);
+
+                i = j; // Finaliza el bucle exterior
+                break;
+            }
+
+            j++; // Intentar extender el segmento aún más
+        }
+    }
+
+    // Marcador final para el último punto
+    const ultimaClave = clavesIniciales[clavesIniciales.length - 1];
+    if (ultimaClave !== undefined && !modeloFinal.has(ultimaClave)) {
+         // Usar [NaN, NaN, NaN] para puntos finales que no son inicios de segmento
+         modeloFinal.set(ultimaClave, [NaN, NaN, NaN]);
+    }
+
+    return { modeloFinal, maxError: maxErrorGeneral };
+}
+
+
+// --- ENTRENAMIENTO Y PREDICCIÓN PRINCIPAL ---
+
+/**
+ * Función principal para entrenar el modelo SLRM.
+ * @param {string} dataString - La cadena de datos crudos (ej. "1.0, 5.0\n2.0, 10.0").
+ * @param {number} epsilon - La tolerancia de error máxima (debe ser >= 0).
+ * @returns {Object} - { model: Map<number, Array<number>>, originalData: Array<Object>, maxError: number }
+ */
+function train_slrm(dataString, epsilon) {
+    if (isNaN(epsilon) || epsilon < 0) {
+        epsilon = 0;
+    }
+
+    const datosOriginales = _limpiarYOrdenarDatos(dataString);
+    if (datosOriginales.length < 2) return { model: new Map(), originalData: datosOriginales, maxError: 0 };
+
+    const breakpointsIniciales = _compresionSinPerdida(datosOriginales);
+
+    // La Compresión Con Pérdida es síncrona
+    const resultado = _compresionConPerdida(breakpointsIniciales, epsilon, datosOriginales);
+
+    return { model: resultado.modeloFinal, originalData: datosOriginales, maxError: resultado.maxError };
+}
+
+
+/**
+ * Realiza una predicción Y para un valor X dado utilizando el modelo entrenado.
+ * NOTA: Esta función requiere los 'datosOriginales' (o min/max X) para manejar correctamente
+ * la extrapolación fuera del rango del modelo.
+ * @param {number} x_in - El valor X de entrada para la predicción.
+ * @param {Map<number, Array<number>>} model - El Mapa del modelo entrenado.
+ * @param {Array<Object>} originalData - Los puntos de datos originales limpios y ordenados.
+ * @returns {Object} - { x_in: number, y_pred: number, slope_P: number, intercept_O: number }
+ */
+function predict_slrm(x_in, model, originalData) {
+    // 1. Preparar claves y límites
+    const claves = Array.from(model.entries())
+        // Filtrar solo las entradas que son inicios de segmento válidos (tienen Pendiente P)
+        .filter(([x_inicio, [P]]) => !isNaN(P))
+        .map(([x_inicio]) => x_inicio);
+    claves.sort((a, b) => a - b);
+
+    if (claves.length === 0 || originalData.length === 0) {
+        return { x_in, y_pred: NaN, slope_P: NaN, intercept_O: NaN };
+    }
+
+    const dataMinX = originalData[0].x;
+    const dataMaxX = originalData[originalData.length - 1].x;
+
+    let claveActiva = null;
+
+    // 2. Lógica de Extrapolación/Interpolación
+    if (x_in < dataMinX) {
+        // Extrapolación antes del rango de datos: usar el primer segmento
+        claveActiva = claves[0];
+    } else if (x_in >= dataMaxX) {
+        // Extrapolación después del rango de datos: usar el último segmento
+        claveActiva = claves[claves.length - 1];
+    } else {
+        // Interpolación: encontrar el segmento donde cae x_in
+        for (let i = 0; i < claves.length; i++) {
+            const x_inicio = claves[i];
+            const x_fin = model.get(x_inicio)[2]; // x_end es el 3er elemento en el array del segmento
+
+            // Verificar si x_in está en [x_inicio, x_fin)
+            if (x_in >= x_inicio && x_in < x_fin) {
+                claveActiva = x_inicio;
                 break;
             }
         }
-        
-        // El segmento final válido es [i, j]. Si j se salió del array, se ajusta a breakpoints.length - 1.
-        if (j === breakpoints.length) {
-             j = breakpoints.length - 1;
-        }
-
-        // Si el segmento no pudo avanzar (i == j, ocurre si j=i+1 falla), avanzar un punto a la vez.
-        if (i === j) {
-            j = i + 1;
-        }
-        
-        let end = breakpoints[j];
-        
-        // Recalcular los parámetros finales para el segmento [i, j] usando sus puntos de inicio y fin
-        let P, O;
-        if (end.x === start.x) {
-            P = Infinity;
-            O = NaN;
-        } else {
-            P = (end.y - start.y) / (end.x - start.x);
-            O = start.y - P * start.x;
-        }
-
-        // Almacenar el segmento en el modelo: {X_inicio: {P, O, X_end}}
-        finalModel[start.x] = { P, O, X_end: end.x };
-
-        // El nuevo punto inicial es el punto final del segmento actual
-        i = j;
-    }
-
-    return { model: finalModel, maxError: currentMaxError };
-}
-
-
-// --- FUNCIONES PRINCIPALES DEL MODELO ---
-
-/**
- * Entrena el Modelo de Regresión Lineal Segmentada (SLRM).
- * Aplica purificación, compresión sin pérdida y compresión con pérdida (MRLS).
- * @param {Array<Array<number>>} data - Datos de entrada [[x, y], ...].
- * @param {number} [epsilon=0.05] - Tolerancia de error máxima deseada.
- * @returns {{finalModel: Object, originalPoints: Array<{x: number, y: number}>, maxErrorAchieved: number}} - Resultados del entrenamiento.
- */
-export function train_slrm(data, epsilon = 0.05) {
-    // 1. Purificación y Ordenamiento
-    const cleanPoints = _cleanAndSortData(data);
-    if (cleanPoints.length < 2) {
-        console.error("SLRM-LOGOS: Se requieren al menos dos puntos únicos para el entrenamiento.");
-        return { finalModel: {}, originalPoints: cleanPoints, maxErrorAchieved: 0 };
-    }
-
-    // 2. Compresión Sin Pérdida (Invarianza Geométrica)
-    const breakpoints = _losslessCompression(cleanPoints);
-
-    // 3. Compresión Con Pérdida (MRLS)
-    const { model, maxError } = _lossyCompression(breakpoints, epsilon);
-
-    return {
-        finalModel: model,
-        originalPoints: cleanPoints,
-        maxErrorAchieved: maxError
-    };
-}
-
-/**
- * Realiza una predicción para un valor X usando el modelo SLRM.
- * Nota: La implementación completa del caché LRU se omite por simplicidad en este módulo.
- * @param {number} x_test - El valor X para el cual se desea la predicción.
- * @param {Object} finalModel - El modelo SLRM (objeto {X_inicio: {P, O, X_end}}).
- * @returns {{x_in: number, y_pred: number|null, slope_P: number|null, intercept_O: number|null, cache_hit: boolean}} - Resultado de la predicción.
- */
-export function predict_slrm(x_test, finalModel) {
-    let slope_P = null;
-    let intercept_O = null;
-    let y_pred = null;
-    const cache_hit = false; // Bandera de caché siempre false en esta implementación simple.
-
-    // Encontrar el segmento activo
-    const xStarts = Object.keys(finalModel).map(Number).sort((a, b) => a - b);
-    
-    // Buscar el segmento
-    for (const xStart of xStarts) {
-        const segment = finalModel[xStart];
-        
-        // Verifica si x_test está dentro del rango [X_start, X_end]
-        if (x_test >= xStart && x_test <= segment.X_end) {
-            slope_P = segment.P;
-            intercept_O = segment.O;
-            
-            if (slope_P === Infinity) {
-                // Error: segmento vertical
-                y_pred = null; 
-            } else {
-                // Cálculo de la regresión lineal: Y = P * X + O
-                y_pred = slope_P * x_test + intercept_O;
-            }
-            break;
+        // Retorno para el último segmento si x_in es exactamente el último breakpoint (x_max)
+        if (claveActiva === null) {
+            claveActiva = claves[claves.length - 1];
         }
     }
-    
-    if (y_pred === null && slope_P !== Infinity) {
-         // Manejo de extrapolación o fuera de rango (devuelve null)
-        // console.warn(`SLRM-LOGOS: X=${x_test} está fuera del rango modelado.`);
+
+    if (claveActiva === undefined) {
+        return { x_in, y_pred: NaN, slope_P: NaN, intercept_O: NaN };
+    }
+
+    // 3. Cálculo
+    // Formato del segmento: [P, O, x_end]
+    const [P, O] = model.get(claveActiva) || [NaN, NaN];
+
+    let y_pred = NaN;
+    if (!isNaN(P) && !isNaN(O)) {
+        // Fórmula de la regresión lineal: Y = P * X + O
+        y_pred = x_in * P + O;
     }
 
     return {
-        x_in: x_test,
-        y_pred: y_pred,
-        slope_P: slope_P,
-        intercept_O: intercept_O,
-        cache_hit: cache_hit
+        x_in,
+        y_pred,
+        slope_P: P,
+        intercept_O: O
     };
 }
 
-// Exportar las funciones auxiliares también si el módulo se usa en un entorno de prueba
-// export { _cleanAndSortData, _losslessCompression, _lossyCompression };
+// Exportar las funciones principales para su uso como un módulo NPM
+module.exports = {
+    train_slrm,
+    predict_slrm,
+    TOLERANCIA_FLOTANTE
+};
