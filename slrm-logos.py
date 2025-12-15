@@ -47,7 +47,7 @@ class LRUCache:
     def put(self, key: float, value: Dict[str, Any]):
         """Inserts or updates a value. If capacity is exceeded, removes the least recently used item."""
         if key in self.cache:
-            # CRITICAL FIX (V5.10): Mover la CLAVE (key), no el VALOR.
+            # CRITICAL FIX (V5.10): Move the KEY, not the VALUE.
             self.cache.move_to_end(key)
         else:
             if len(self.cache) >= self.capacity:
@@ -154,7 +154,7 @@ def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tup
     max_overall_error = 0.0
     
     def _calculate_segment_max_error(x_s, x_e, P, O, data_x_list, data):
-        """Helper para calcular el error máximo de un segmento COMPROMETIDO."""
+        """Helper to calculate the maximum error of a COMMITTED segment."""
         # Check if P and O are calculated (i.e., not NaN)
         if math.isnan(P) or math.isnan(O):
             return 0.0 
@@ -163,7 +163,7 @@ def _lossy_compression(initial_keys: List[float], epsilon: float, data: List[Tup
         end_idx = data_x_list.index(x_e)
         max_err = 0.0
         
-        # Iterar sobre los puntos intermedios (exclusivos del punto inicial y final)
+        # Iterate over intermediate points (excluding the start and end points)
         for k in range(start_idx + 1, end_idx):
             x_mid, y_true_mid = data[k]
             
