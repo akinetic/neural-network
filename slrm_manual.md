@@ -79,4 +79,4 @@ print(f"Cache Hit: {result['cache_hit']}") # Muestra si la predicción vino del 
 
 * [📧 Main Project Repository](https://github.com/akinetic/neural-network/)
 * [💻 Production SLRM Script (slrm-logos.py)](https://github.com/akinetic/neural-network/blob/main/slrm-logos.py)
-* [📄 Performance and Efficiency Report (slrm\_performance\_report.md)](https://github.com/akinetic/neural-network/slrm_performance_report.md)
+* [📄 Performance and Efficiency Report (slrm\_performance\_report.md)](https://github.com/akinetic/neural-network/blob/main/slrm_performance_report.md)
