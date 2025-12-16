@@ -174,16 +174,19 @@ Las siguientes referencias conceptuales inspiran o contrastan con los principios
 
 ---
 
-Archivos del Proyecto
+Recursos y Scripts de Referencia:
 
-[readme-demo](https://akinetic.github.io/neural-network) : La aplicación web para la visualización.
+[website](https://akinetic.github.io/neural-network/es/) : Repositorio Principal del Proyecto.
 
-[slrm-logos.py](slrm-logos.py) : 
-El código fuente principal que contiene la lógica de entrenamiento y predicción (V5.10b).
+[slrm-logos-es.py](slrm-logos-es.py) : Script SLRM de Producción (V5.10b).
 
-[slrm_manual.html](https://akinetic.github.io/neural-network/slrm_manual.html)  : (Contenido de este archivo): Este manual técnico (V5.10b).
+[slrm\_manual\_es.md](slrm\_manual\_es.md)  : El Manual Técnico SLRM (V5.10b).
 
-[slrm_visualizer.html](https://akinetic.github.io/neural-network/es/slrm_visualizador.html) : La aplicación web para la visualización (V5.10b).
+[slrm\_visualizador.html](https://akinetic.github.io/neural-network/es/slrm_visualizador.html) : Web App: Visualizador SLRM (V5.10b).
+
+[slrm\_reporte\_rendimiento.py](slrm_reporte_rendimiento.py) : Script de Reporte de Rendimiento  (V5.10b).
+
+[slrm\_reporte\_rendimiento.md](slrm_reporte_rendimiento.md)  : Reporte de Rendimiento y Eficiencia (V5.10b).
 
 ---
 
