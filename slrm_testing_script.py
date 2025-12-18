@@ -7,7 +7,7 @@
 # Decision Tree Regression (DT).
 #
 # OBJECTIVES:
-# 1. Integrate the SLRM core (V5.10b) for consistency.
+# 1. Integrate the SLRM core (V5.12) for consistency.
 # 2. Train and predict using SLR, Polynomial, and Decision Tree.
 # 3. Calculate key metrics (MSE, R2, SLRM Segments, Compression Rate).
 # 4. Visualize the comparative results for the Decision Sheet.
@@ -25,7 +25,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.tree import DecisionTreeRegressor # Necessary Import
 
 # ==============================================================================
-# --- SLRM CORE V5.10b (INTEGRATED CODE) ---
+# --- SLRM CORE V5.12 (INTEGRATED CODE) ---
 # The SLRM code (train_slrm, predict_slrm, utilities) is maintained here
 # to ensure the core functionality of the model being tested.
 # ==============================================================================
@@ -92,7 +92,7 @@ def _clean_and_sort_data(data_string: str) -> List[Tuple[float, float]]:
     return cleaned_data
 
 # ==============================================================================
-# 3. COMPRESSION FUNCTIONS (LOGOS CORE V5.10b)
+# 3. COMPRESSION FUNCTIONS (LOGOS CORE V5.12)
 # ==============================================================================
 
 def _lossless_compression(data: List[Tuple[float, float]]) -> List[float]:
@@ -388,7 +388,8 @@ Y_pred_poly = poly_model.predict(X_poly)
 dt_model = DecisionTreeRegressor(max_depth=5)
 dt_model.fit(X, Y)
 Y_pred_dt = dt_model.predict(X)
-dt_complexity = dt_model.get_depth() + 1 if dt_model.get_depth() else 2 # Tree Depth + 1 (minimum 2)
+# dt_complexity = dt_model.get_depth() + 1 if dt_model.get_depth() else 2 # Original metric: measures max depth.
+dt_complexity = dt_model.tree_.n_leaves # Corrected metric: counts leaf nodes (prediction regions), ensuring a fair structural comparison with SLRM segments.
 
 # ==============================================================================
 # --- CELL 4: PREDICTION AND METRICS CALCULATION (DECISION SHEET) ---

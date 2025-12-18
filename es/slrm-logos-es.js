@@ -1,13 +1,13 @@
 /**
- * @fileoverview Algoritmo Central SLRM-LOGOS (V5.10b)
+ * @fileoverview Algoritmo Central SLRM-LOGOS (V5.12)
  * Un Modelo de Regresión Lineal Segmentada (SLRM) implementado en JavaScript/Node.js puro.
  * Este módulo proporciona funciones para el entrenamiento y la predicción utilizando el algoritmo Logos Core.
  * Las funciones son síncronas y están diseñadas para entornos de cómputo (Node.js/Workers).
- * @author Alex Kinetic and Logos
+ * @author Alex Kinetic y Logos
  * Dependencias: Ninguna.
  */
 
-// --- LÓGICA CENTRAL SLRM (V5.10b) ---
+// --- LÓGICA CENTRAL SLRM (V5.12) ---
 
 // CONSTANTE DE PRECISIÓN PARA ARITMÉTICA DE PUNTO FLOTANTE
 const TOLERANCIA_FLOTANTE = 1e-9;

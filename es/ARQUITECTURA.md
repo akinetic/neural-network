@@ -258,8 +258,8 @@ Las siguientes referencias conceptuales inspiran o contrastan con los principios
 
 ---
 
-Authors
+Autores
 
-Alex Kinetic and Logos
+Alex Kinetic y Logos
 
-Project under MIT License
+Proyecto bajo Licencia MIT

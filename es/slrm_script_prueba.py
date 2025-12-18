@@ -6,7 +6,7 @@
 # Regresión Lineal Simple (RLS), Regresión Polinomial y Árbol de Decisión (DT).
 #
 # OBJETIVOS:
-# 1. Integrar el núcleo del SLRM (V5.10b) para garantizar la consistencia.
+# 1. Integrar el núcleo del SLRM (V5.12) para garantizar la consistencia.
 # 2. Entrenar y predecir con RLS, Polinomial y Decision Tree de scikit-learn.
 # 3. Calcular métricas clave (MSE, R2, Segmentos SLRM, Tasa de Compresión).
 # 4. Visualizar los resultados comparativos para la Hoja de Decisión.
@@ -24,7 +24,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.tree import DecisionTreeRegressor # Importación necesaria
 
 # ==============================================================================
-# --- SLRM CORE V5.10b (CÓDIGO INTEGRADO) ---
+# --- SLRM CORE V5.12 (CÓDIGO INTEGRADO) ---
 # Se mantiene el código del SLRM (train_slrm, predict_slrm, utilidades)
 # para asegurar la funcionalidad central del modelo que se está probando.
 # ==============================================================================
@@ -91,7 +91,7 @@ def _clean_and_sort_data(data_string: str) -> List[Tuple[float, float]]:
     return cleaned_data
 
 # ==============================================================================
-# 3. FUNCIONES DE COMPRESIÓN (NÚCLEO LOGOS V5.10b)
+# 3. FUNCIONES DE COMPRESIÓN (NÚCLEO LOGOS V5.12)
 # ==============================================================================
 
 def _lossless_compression(data: List[Tuple[float, float]]) -> List[float]:
@@ -384,7 +384,8 @@ Y_pred_poly = poly_model.predict(X_poly)
 dt_model = DecisionTreeRegressor(max_depth=5)
 dt_model.fit(X, Y)
 Y_pred_dt = dt_model.predict(X)
-dt_complexity = dt_model.get_depth() + 1 if dt_model.get_depth() else 2 # Profundidad del árbol + 1 (mínimo 2)
+# dt_complexity = dt_model.get_depth() + 1 if dt_model.get_depth() else 2 # Métrica Original : Profundidad del árbol + 1 (mínimo 2)
+dt_complexity = dt_model.tree_.n_leaves # Métrica Corregida : Las cuentas echan hojas los nodos (las regiones de la predicción), asegurando una comparación estructural justa con los segmentos de SLRM.
 
 # ==============================================================================
 # --- CELDA 4: PREDICCIÓN Y CÁLCULO DE MÉTRICAS (HOJA DE DECISIÓN) ---

@@ -1,6 +1,6 @@
 # slrm-logos-es.py
 # Modelo de Regresión Lineal Segmentada (SLRM) - Núcleo Logos
-# Versión: V5.10b (Versión Final Verificada)
+# Versión: V5.12 (Versión Final Verificada)
 # Autores: Alex Kinetic y Logos
 #
 # Implementación completa del proceso de entrenamiento (compresión) y
@@ -47,7 +47,7 @@ class LRUCache:
     def put(self, key: float, value: Dict[str, Any]):
         """Inserta o actualiza un valor. Si se excede la capacidad, elimina el elemento menos recientemente usado."""
         if key in self.cache:
-            # CORRECCIÓN CRÍTICA (V5.10): Mover la CLAVE, no el VALOR.
+            # CORRECCIÓN CRÍTICA : Mover la CLAVE, no el VALOR.
             self.cache.move_to_end(key)
         else:
             if len(self.cache) >= self.capacity:
@@ -95,7 +95,7 @@ def _clean_and_sort_data(data_string: str) -> List[Tuple[float, float]]:
     return cleaned_data
 
 # ==============================================================================
-# 3. FUNCIONES DE COMPRESIÓN (NÚCLEO LOGOS V5.10b)
+# 3. FUNCIONES DE COMPRESIÓN (NÚCLEO LOGOS V5.12)
 # ==============================================================================
 
 def _lossless_compression(data: List[Tuple[float, float]]) -> List[float]:
@@ -394,7 +394,7 @@ if __name__ == "__main__":
 15, 8.5
 """
     
-    print("--- Ejemplo de Entrenamiento y Predicción SLRM (V5.10b - Refinamiento de Prueba) ---")
+    print("--- Ejemplo de Entrenamiento y Predicción SLRM (V5.12 - Refinamiento de Prueba) ---")
     
     # --------------------------------------------------------------------------
     # PRUEBA 1: Compresión Con Pérdida (epsilon=0.5)

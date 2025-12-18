@@ -1,0 +1,45 @@
+{
+  "name": "slrm-logos",
+  "version": "5.12",
+  "description": "The efficient alternative to Neural Networks. Implements SLRM (Segmented Linear Regression Model) for neural compression and non-linear data modeling, achieving high precision with a fraction of the parameters of a traditional ANN.",
+  "main": "slrm-logos.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "javascript",
+    "python",
+    "demo",
+    "iot",
+    "ai",
+    "data-science",
+    "machine-learning",
+    "time-series",
+    "neural-network",
+    "optimization",
+    "efficiency",
+    "regression",
+    "artificial-intelligence",
+    "neural-networks",
+    "data-analysis",
+    "segmentation",
+    "data-modeling",
+    "function-approximation",
+    "model-compression",
+    "piecewise-linear"
+  ],
+  "contributors": [
+    { "name": "Alex Kinetic" },
+    { "name": "Gemini" },
+    { "name": "Logos" }
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akinetic/neural-network.git"
+  },
+  "bugs": {
+    "url": "https://github.com/akinetic/neural-network/issues"
+  },
+  "homepage": "https://github.com/akinetic/neural-network#readme"
+}

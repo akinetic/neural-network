@@ -1,6 +1,6 @@
 # slrm-logos.py
 # Segmented Linear Regression Model (SLRM) - Logos Core
-# Version: V5.10b (Verified Final Version)
+# Version: V5.12 (Verified Final Version)
 # Authors: Alex Kinetic and Logos
 #
 # Complete implementation of the SLRM training (compression) and optimized
@@ -13,7 +13,7 @@ import math
 from collections import OrderedDict
 from typing import List, Tuple, Dict, Any, Optional
 
-# Definición de tipos para el modelo SLRM
+# SLRM Model Type definition
 SLRMModel = Dict[float, List[float]]
 
 # --- GLOBAL CONSTANTS ---
@@ -47,7 +47,7 @@ class LRUCache:
     def put(self, key: float, value: Dict[str, Any]):
         """Inserts or updates a value. If capacity is exceeded, removes the least recently used item."""
         if key in self.cache:
-            # CRITICAL FIX (V5.10): Move the KEY, not the VALUE.
+            # CRITICAL FIX : Move the KEY, not the VALUE.
             self.cache.move_to_end(key)
         else:
             if len(self.cache) >= self.capacity:
@@ -95,7 +95,7 @@ def _clean_and_sort_data(data_string: str) -> List[Tuple[float, float]]:
     return cleaned_data
 
 # ==============================================================================
-# 3. COMPRESSION FUNCTIONS (LOGOS CORE V5.10b)
+# 3. COMPRESSION FUNCTIONS (LOGOS CORE V5.12)
 # ==============================================================================
 
 def _lossless_compression(data: List[Tuple[float, float]]) -> List[float]:
@@ -394,7 +394,7 @@ if __name__ == "__main__":
 15, 8.5
 """
     
-    print("--- SLRM Training and Prediction Example (V5.10b - Test Refinement) ---")
+    print("--- SLRM Training and Prediction Example (V5.12 - Test Refinement) ---")
     
     # --------------------------------------------------------------------------
     # TEST 1: Lossy Compression (epsilon=0.5)

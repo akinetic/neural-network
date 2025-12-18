@@ -1,5 +1,5 @@
 /**
- * @fileoverview SLRM-LOGOS Core Algorithm (V5.10b)
+ * @fileoverview SLRM-LOGOS Core Algorithm (V5.12)
  * A Segmented Linear Regression Model (SLRM) implemented in pure JavaScript/Node.js.
  * This module provides functions for training and predicting using the Logos Core algorithm.
  * * Functions are synchronous and designed for compute environments (Node.js/Workers).
@@ -7,7 +7,7 @@
  * Dependencies: None.
  */
 
-// --- SLRM CORE LOGIC (V5.10b) ---
+// --- SLRM CORE LOGIC (V5.12) ---
 
 // PRECISION CONSTANT FOR FLOATING POINT ARITHMETIC
 const FLOAT_TOLERANCE = 1e-9; 

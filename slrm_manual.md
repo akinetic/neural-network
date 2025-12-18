@@ -1,4 +1,4 @@
-# SLRM-LOGOS Technical Manual (V5.10b)
+# SLRM-LOGOS Technical Manual (V5.12)
 
 ## Segmented Linear Regression Model (SLRM) Core Architecture
 
@@ -8,16 +8,16 @@ It utilizes the **Minimum Required Line Segments (MRLS)** technique to represent
 
 ---
 
-### Key Features (SLRM V5.10b)
+### Key Features (SLRM V5.12)
 
-* **Verification and Robustness:** Versión V5.10b verificada y probada con correcciones críticas en el manejo del error máximo en compresión Lossy.
+* **Verification and Robustness:** Version V5.12 verified and tested with critical corrections in the handling of maximum error in Lossy compression.
 * **Speed:** The core compression process is non-iterative and deterministic, relying on NumPy for optimal training speed, making it an **Instant Training** model.
 * **Compression (Lossless/Lossy):** Implements both exact geometric compression (`_lossless_compression`) and tolerance-based compression (`_lossy_compression`).
 * **Prediction Optimized:** Uses an **LRU (Least Recently Used)** prediction cache for dramatically accelerating real-time inference of repeated or nearby points.
 * **Data Integrity:** Includes an initial data purification stage (`_clean_and_sort_data`) to handle duplicates (averaging Y values for the same X) and sort the data by X.
 * **Full Interpretability:** The model is a "transparent box," storing explicit knowledge (Slope $P$ and Intercept $O$) for every segment.
 
-### Training Process Stages (V5.10b)
+### Training Process Stages (V5.12)
 
 The `train_slrm` function executes a three-stage compression pipeline:
 
@@ -25,12 +25,12 @@ The `train_slrm` function executes a three-stage compression pipeline:
     * Converts input data into a clean, sorted sequence of points.
     * Handles X duplicates by averaging their corresponding Y values.
 2.  **Lossless Compression (`_lossless_compression`):**
-    * **Geometric Invariance:** Identifica y elimina todos los puntos intermedios que son geométricamente colineales (puntos críticos de quiebre).
-    * El resultado es la **Base de Breakpoints** que preserva la precisión original.
+    * **Geometric Invariance:** Identifies and removes all intermediate points that are geometrically collinear (critical breakpoint points).
+    * The result is the **Breakpoints Base** that preserves the original precision.
 3.  **Lossy Compression (MRLS, `_lossy_compression`):**
-    * Aplica el criterio de error humano $\epsilon$ sobre la Base de Breakpoints.
-    * Utiliza la técnica de **Segmentos de Línea Mínimos Requeridos (MRLS)** para extender segmentos hasta que el error de interpolación exceda $\epsilon$.
-    * **El modelo final** ($P$, $O$, $X_{end}$) es generado y el máximo error real ($Error_{max}$) es retornado.
+    * Applies the human error criterion $\epsilon$ over the Breakpoints Base.
+    * Utilizes the **Minimum Required Line Segments (MRLS)** technique to extend segments until the interpolation error exceeds $\epsilon$.
+    * **The final model** ($P$, $O$, $X_{end}$) is generated and the actual maximum error ($Error_{max}$) is returned.
 
 ### Usage Quick Guide
 
@@ -43,7 +43,7 @@ You need to have Python and the NumPy library installed.
 pip install numpy
 ```
 
-#### 1. Training (V5.10b)
+#### 1. Training (V5.12)
 
 Define your input data and the tolerance ($\epsilon$).
 ```python
@@ -57,13 +57,12 @@ INPUT_DATA = [
 # Train the model. It returns the final model dictionary, the original points, and the max error achieved.
 final_model, original_points, max_error_achieved = train_slrm(INPUT_DATA, epsilon=0.03) 
 
-# El resultado 'final_model' es un diccionario {X_start: [P, O, X_end]} 
-# que define explícitamente cada segmento.
+# The result 'final_model' is a dictionary {X_start: [P, O, X_end]} # that explicitly defines each segment.
 ```
 
-#### 2. Prediction (V5.10b)
+#### 2. Prediction (V5.12)
 
-Use el diccionario del modelo (`final_model`) para obtener predicciones para cualquier punto X. El caché LRU se gestiona internamente en la función `predict_slrm`.
+Use the model dictionary (`final_model`) to get predictions for any X point. The LRU cache is managed internally in the `predict_slrm` function.
 ```python
 from slrm_logos import predict_slrm
 
@@ -72,11 +71,11 @@ result = predict_slrm(x_test, final_model, original_points)
 
 print(f"Prediction for X={result['x_in']}: Y={result['y_pred']:.4f}")
 print(f"Active Segment: P={result['slope_P']:.4f}, O={result['intercept_O']:.4f}")
-print(f"Cache Hit: {result['cache_hit']}") # Muestra si la predicción vino del caché
+print(f"Cache Hit: {result['cache_hit']}") # Shows if the prediction came from the cache
 ```
 
 ### Resources and Reference Scripts:
 
-* [📧 Main Project Repository](https://github.com/akinetic/neural-network/)
-* [💻 Production SLRM Script (slrm-logos.py)](https://github.com/akinetic/neural-network/blob/main/slrm-logos.py)
-* [📄 Performance and Efficiency Report (slrm\_performance\_report.md)](https://github.com/akinetic/neural-network/blob/main/slrm_performance_report.md)
+* [Main Project Repository](https://github.com/akinetic/neural-network/)
+* [Production SLRM Script (slrm-logos.py)](slrm-logos.py)
+* [Performance and Efficiency Report (slrm\_performance\_report.md)](slrm_performance_report.md)

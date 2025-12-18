@@ -1,4 +1,4 @@
-# SLRM-LOGOS V5.10b: Performance and Efficiency Report
+# SLRM-LOGOS V5.12: Performance and Efficiency Report
 
 This technical report consolidates the features of the Segmented Linear Regression Model (SLRM) and presents performance results demonstrating its efficiency and accuracy against standard machine learning models.
 
@@ -38,7 +38,7 @@ The following table compares SLRM with popular scikit-learn library models, eval
 | Model | MSE | $R^2$ | Model Complexity | Conclusion |
 | :--- | :--- | :--- | :--- | :--- |
 | **SLRM (Segmented)** | **0.0380** | **0.9893** | **6 (Key Points)** | Near-perfect accuracy with high compression. |
-| Decision Tree (Depth 5) | **0.0129** | **0.9964** | **6 (Levels/Depth)** | Slightly more accurate, but with a complex hierarchical structure. |
+| Decision Tree (Depth 5) | **0.0129** | **0.9964** | **9 (Levels/Depth)** | Slightly more accurate, but with a complex hierarchical structure. |
 | Polynomial (Degree 3) | 0.2392 | 0.9328 | 4 (Coefficients) | Worse fit than SLRM; mathematical complexity. |
 | SLR (Simple Linear) | 0.9263 | 0.7399 | 2 (Parameters) | Unacceptable fit for non-linear data. |
 
@@ -48,9 +48,9 @@ The following table compares SLRM with popular scikit-learn library models, eval
 
 The results confirm that the SLRM design is an optimal approach for modeling time series and curves.
 
-1.  **Knowledge Efficiency:** SLRM achieves an accuracy of $R^2 = 0.9893$ (virtually equal to the Decision Tree), but does so in a **linearly simple and fully interpretable manner** through only 5 segments.
-2.  **Transparency vs. Black Box:** While the Decision Tree achieves its fit through a complex hierarchy of splits, SLRM achieves the same result with the simple logic of **geometry and error tolerance**, making it ideal for industrial and financial systems where interpretability is fundamental.
-3.  **Compression without Compromise:** SLRM reduces the amount of data to be stored by 60% without sacrificing the precision required by the user ($\epsilon \le 0.5$).
+1. **Geometric Efficiency:** SLRM achieves an accuracy of $R^2 = 0.9893$ (virtually equal to the Decision Tree), but does so with **geometric simplicity** through only **5 linear segments**. This is a more elegant and interpretable structure than the **9 regions** used by the Decision Tree.
+2. **Transparency vs. Black Box:** While the Decision Tree achieves its fit through a complex hierarchy of splits, SLRM achieves the same result with the simple logic of **geometry and error tolerance**, making it ideal for industrial and financial systems where interpretability is fundamental.
+3. **Compression without Compromise:** SLRM reduces the amount of data to be stored by 60% without sacrificing the precision required by the user ($\epsilon \le 0.5$).
 
 **SLRM is the solution for Knowledge Compression: it is Accurate, Simple, and Efficient.**
 
@@ -58,5 +58,5 @@ The results confirm that the SLRM design is an optimal approach for modeling tim
 ### Resources and Reference Scripts:
 
 * [Main Project Repository](https://github.com/akinetic/neural-network/)
-* [Production SLRM Script (slrm-logos.py)](https://github.com/akinetic/neural-network/blob/main/slrm-logos.py)
-* [Performance Report Script (slrm_performance_report.py)](https://github.com/akinetic/neural-network/blob/main/slrm_performance_report.py)
+* [Production SLRM Script (slrm-logos.py)](slrm-logos.py)
+* [Performance Testing Script (slrm\_testing\_script.py)](slrm_testing_script.py)
